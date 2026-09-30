@@ -1,0 +1,10 @@
+{
+  "packages": {
+    "crates/api": {
+      "release-type": "rust",
+      "component": "coat-check",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true
+    }
+  }
+}

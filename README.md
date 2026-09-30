@@ -101,6 +101,30 @@ cargo llvm-cov                     # coverage report
 cargo llvm-cov --html              # HTML coverage report
 ```
 
+### Commits
+
+This repo uses [Conventional Commits](https://www.conventionalcommits.org/). CI will reject PRs with non-conforming messages.
+
+```
+feat: add humidity factor to recommendation
+fix: handle empty forecast response from Open-Meteo
+chore: update dependencies
+feat!: change response field from "yes" to "coat"
+```
+
+Use scopes to target a specific crate. This tells Release Please which package to bump:
+
+```
+feat(coat-check): add wind chill factor
+fix(coat-check): handle empty forecast response
+```
+
+Without a scope, Release Please infers the package from which files changed in the commit.
+
+PRs are squash-merged, so the **PR title** becomes the commit message on `main`. Make sure PR titles follow the conventional commit format.
+
+Releases are managed by [Release Please](https://github.com/googleapis/release-please). When PRs merge to `main`, it opens a Release PR that bumps versions and generates a changelog. Merge that PR to cut a release.
+
 ## Architecture
 
 Hexagonal (ports and adapters). Domain logic has zero I/O dependencies.

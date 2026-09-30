@@ -2,6 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Principles
+
+Keep the project slim. Remove unused code, dependencies, and files — don't leave things around "just in case". If it's not needed, it goes.
+
+## Commits
+
+All commits must follow [Conventional Commits](https://www.conventionalcommits.org/). CI enforces this on PRs.
+
+- `feat:` — new feature (minor bump)
+- `fix:` — bug fix (patch bump)
+- `feat!:` or `fix!:` — breaking change
+- `chore:`, `docs:`, `refactor:`, `test:` — no release
+
+Scope with the crate name when the change is crate-specific: `feat(coat-check): add wind chill factor`.
+
+PRs use squash merge. The PR title becomes the commit message on main, so PR titles must also follow conventional commit format.
+
 ## Commands
 
 ```bash

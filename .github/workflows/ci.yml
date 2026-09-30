@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  pr-title:
+    name: PR Title (Conventional Commit)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  fmt:
+    name: Format
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy -- -D warnings
+
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - name: Tests with coverage
+        run: |
+          cargo llvm-cov --json --output-path coverage.json
+          cargo llvm-cov report
+          COVERAGE=$(jq '.data[0].totals.lines.percent' coverage.json | xargs printf '%.1f')
+          echo "::notice::Code coverage: ${COVERAGE}%"
+
+  smoke:
+    name: Smoke Test
+    needs: [clippy, test]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p coat-check
+      - name: Start server and verify
+        run: |
+          PORT=3000 ./target/release/coat-check &
+          SERVER_PID=$!
+          sleep 2
+
+          # Health check
+          curl -sf http://localhost:3000/health
+
+          # Real coat-check request against live Open-Meteo
+          RESPONSE=$(curl -sf -X POST http://localhost:3000/coat-check \
+            -H 'Content-Type: application/json' \
+            -d '{"locations":[{"lat":51.5074,"lon":-0.1278,"label":"London"}]}')
+
+          echo "$RESPONSE" | jq .
+
+          # Verify response shape
+          echo "$RESPONSE" | jq -e '.recommendation' > /dev/null
+          echo "$RESPONSE" | jq -e '.locations | length > 0' > /dev/null
+
+          kill $SERVER_PID
