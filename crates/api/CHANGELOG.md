@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/simonpforster/coat-check/compare/coat-check-v0.2.0...coat-check-v0.2.1) (2026-09-30)
+
+
+### Bug Fixes
+
+* bump Dockerfile Rust version to 1.88 for icu_* dependencies ([#4](https://github.com/simonpforster/coat-check/issues/4)) ([d684089](https://github.com/simonpforster/coat-check/commit/d6840892fe7a230554072e6d25d921d5450fdf57))
+
 ## [0.2.0](https://github.com/simonpforster/coat-check/compare/coat-check-v0.1.0...coat-check-v0.2.0) (2026-09-30)
 
 
