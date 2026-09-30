@@ -1,5 +1,7 @@
 FROM rust:1.98-slim AS builder
 
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates/api/Cargo.toml crates/api/Cargo.toml
