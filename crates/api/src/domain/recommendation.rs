@@ -2,7 +2,8 @@ use crate::domain::{location::Location, weather::DailyForecast};
 
 const FEELS_LIKE_THRESHOLD: f64 = 12.0;
 const TEMP_MAX_THRESHOLD: f64 = 15.0;
-const PRECIP_THRESHOLD: f64 = 1.0;
+const LIGHT_PRECIP_THRESHOLD: f64 = 1.0;
+const HEAVY_PRECIP_THRESHOLD: f64 = 5.0;
 const WIND_THRESHOLD: f64 = 40.0;
 const THUNDERSTORM_CODE: u16 = 95;
 
@@ -10,16 +11,19 @@ const THUNDERSTORM_CODE: u16 = 95;
 pub enum CoatRecommendation {
     /// No outerwear needed.
     No = 0,
-    /// Warm enough, but bring a rain jacket.
-    RainJacket = 1,
+    /// Light rain — bring an umbrella.
+    Umbrella = 1,
+    /// Heavier rain — bring a rain jacket.
+    RainJacket = 2,
     /// Bring a proper coat.
-    Coat = 2,
+    Coat = 3,
 }
 
 impl CoatRecommendation {
     pub fn as_str(&self) -> &'static str {
         match self {
             CoatRecommendation::No => "no",
+            CoatRecommendation::Umbrella => "umbrella",
             CoatRecommendation::RainJacket => "rain_jacket",
             CoatRecommendation::Coat => "coat",
         }
@@ -54,7 +58,6 @@ pub struct CoatDecision {
 pub fn evaluate(forecast: &DailyForecast) -> LocationRecommendation {
     let mut reasons: Vec<String> = Vec::new();
     let mut needs_coat = false;
-    let mut needs_rain_layer = false;
 
     // Cold-weather triggers → full coat
     if forecast.feels_like_min_celsius < FEELS_LIKE_THRESHOLD {
@@ -86,9 +89,18 @@ pub fn evaluate(forecast: &DailyForecast) -> LocationRecommendation {
         ));
     }
 
-    // Wet-weather triggers → rain jacket (or coat if already cold)
-    if forecast.precipitation_mm >= PRECIP_THRESHOLD {
-        needs_rain_layer = true;
+    // Wet-weather triggers
+    let mut needs_rain_jacket = false;
+    let mut needs_umbrella = false;
+
+    if forecast.precipitation_mm >= HEAVY_PRECIP_THRESHOLD {
+        needs_rain_jacket = true;
+        reasons.push(format!(
+            "{:.1} mm precipitation expected",
+            forecast.precipitation_mm
+        ));
+    } else if forecast.precipitation_mm >= LIGHT_PRECIP_THRESHOLD {
+        needs_umbrella = true;
         reasons.push(format!(
             "{:.1} mm precipitation expected",
             forecast.precipitation_mm
@@ -96,14 +108,16 @@ pub fn evaluate(forecast: &DailyForecast) -> LocationRecommendation {
     }
 
     if forecast.weather_code >= THUNDERSTORM_CODE {
-        needs_rain_layer = true;
+        needs_rain_jacket = true;
         reasons.push("thunderstorms forecast".to_string());
     }
 
     let recommendation = if needs_coat {
         CoatRecommendation::Coat
-    } else if needs_rain_layer {
+    } else if needs_rain_jacket {
         CoatRecommendation::RainJacket
+    } else if needs_umbrella {
+        CoatRecommendation::Umbrella
     } else {
         CoatRecommendation::No
     };
@@ -168,19 +182,44 @@ mod tests {
     }
 
     #[test]
-    fn rain_jacket_warm_and_rainy() {
+    fn umbrella_light_rain() {
         let mut f = warm_dry();
-        f.precipitation_mm = 5.0;
+        f.precipitation_mm = 3.0;
+        let r = evaluate(&f);
+        assert_eq!(r.recommendation, CoatRecommendation::Umbrella);
+        assert!(r.reasons.iter().any(|s| s.contains("precipitation")));
+    }
+
+    #[test]
+    fn rain_jacket_heavy_rain() {
+        let mut f = warm_dry();
+        f.precipitation_mm = 8.0;
         let r = evaluate(&f);
         assert_eq!(r.recommendation, CoatRecommendation::RainJacket);
         assert!(r.reasons.iter().any(|s| s.contains("precipitation")));
     }
 
     #[test]
+    fn rain_jacket_at_heavy_threshold() {
+        let mut f = warm_dry();
+        f.precipitation_mm = 5.0;
+        let r = evaluate(&f);
+        assert_eq!(r.recommendation, CoatRecommendation::RainJacket);
+    }
+
+    #[test]
+    fn umbrella_just_below_heavy_threshold() {
+        let mut f = warm_dry();
+        f.precipitation_mm = 4.9;
+        let r = evaluate(&f);
+        assert_eq!(r.recommendation, CoatRecommendation::Umbrella);
+    }
+
+    #[test]
     fn coat_cold_and_rainy() {
         let mut f = warm_dry();
         f.feels_like_min_celsius = 8.0;
-        f.precipitation_mm = 5.0;
+        f.precipitation_mm = 8.0;
         let r = evaluate(&f);
         assert_eq!(r.recommendation, CoatRecommendation::Coat);
         assert_eq!(r.reasons.len(), 2);
@@ -224,6 +263,7 @@ mod tests {
     #[test]
     fn coat_ordering() {
         assert!(CoatRecommendation::Coat > CoatRecommendation::RainJacket);
-        assert!(CoatRecommendation::RainJacket > CoatRecommendation::No);
+        assert!(CoatRecommendation::RainJacket > CoatRecommendation::Umbrella);
+        assert!(CoatRecommendation::Umbrella > CoatRecommendation::No);
     }
 }

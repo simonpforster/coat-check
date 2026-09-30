@@ -74,6 +74,6 @@ POST /coat-check
 GET /health
 ```
 
-Response `recommendation` is `"coat"`, `"rain_jacket"`, or `"no"`. Cold triggers → coat; warm + wet → rain jacket. Multiple locations evaluated independently; worst-case wins overall.
+Response `recommendation` is `"coat"`, `"rain_jacket"`, `"umbrella"`, or `"no"`. Cold triggers → coat; heavy rain/thunderstorm → rain jacket; light rain (1–5mm) → umbrella. Multiple locations evaluated independently; worst-case wins overall.
 
 Swagger UI served at `/swagger-ui`. OpenAPI spec at `/api-docs/openapi.json`. DTOs use `utoipa::ToSchema`; handler uses `#[utoipa::path]`.

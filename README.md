@@ -1,6 +1,6 @@
 # coat-check
 
-A REST API that tells you whether to bring a coat today. Send your locations, get back a recommendation: **coat**, **rain jacket**, or **nothing**.
+A REST API that tells you whether to bring a coat today. Send your locations, get back a recommendation: **coat**, **rain jacket**, **umbrella**, or **nothing**.
 
 Queries [Open-Meteo](https://open-meteo.com/) (free, no API key) for daily forecasts and evaluates them against sensible thresholds.
 
@@ -55,10 +55,11 @@ Multiple locations are evaluated independently. The overall recommendation is th
 | Temp max | < 15°C | Coat |
 | Wind speed max | ≥ 40 km/h | Coat |
 | Snowfall | > 0 cm | Coat |
-| Precipitation | ≥ 1 mm | Rain jacket |
+| Precipitation | ≥ 5 mm | Rain jacket |
 | Thunderstorm (WMO code) | ≥ 95 | Rain jacket |
+| Precipitation | 1–5 mm | Umbrella |
 
-Cold triggers → coat. Wet-only triggers on a warm day → rain jacket.
+Cold triggers → coat. Heavy rain or thunderstorm → rain jacket. Light rain → umbrella.
 
 ## API
 
@@ -77,7 +78,7 @@ Cold triggers → coat. Wet-only triggers on a warm day → rain jacket.
 
 | Field | Description |
 |-------|-------------|
-| `recommendation` | `"coat"`, `"rain_jacket"`, or `"no"` |
+| `recommendation` | `"coat"`, `"rain_jacket"`, `"umbrella"`, or `"no"` |
 | `reason` | Human-readable summary |
 | `locations[]` | Per-location breakdown with weather data |
 

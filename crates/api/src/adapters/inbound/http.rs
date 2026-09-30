@@ -52,7 +52,7 @@ pub struct LocationDto {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CoatCheckResponse {
-    /// Overall recommendation: "coat", "rain_jacket", or "no"
+    /// Overall recommendation: "coat", "rain_jacket", "umbrella", or "no"
     pub recommendation: String,
     /// Human-readable explanation
     pub reason: String,
@@ -65,7 +65,7 @@ pub struct LocationResultDto {
     pub label: Option<String>,
     pub lat: f64,
     pub lon: f64,
-    /// Location-specific recommendation: "coat", "rain_jacket", or "no"
+    /// Location-specific recommendation: "coat", "rain_jacket", "umbrella", or "no"
     pub recommendation: String,
     pub reasons: Vec<String>,
     pub temp_max_celsius: f64,
