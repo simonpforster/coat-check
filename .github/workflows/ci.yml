@@ -16,9 +16,12 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy, rustfmt
+          components: clippy, rustfmt, llvm-tools-preview
 
       - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Format check
         run: cargo fmt --check
@@ -26,5 +29,9 @@ jobs:
       - name: Clippy
         run: cargo clippy -- -D warnings
 
-      - name: Tests
-        run: cargo test
+      - name: Tests with coverage
+        run: |
+          cargo llvm-cov --json --output-path coverage.json
+          cargo llvm-cov report
+          COVERAGE=$(jq '.data[0].totals.lines.percent' coverage.json | xargs printf '%.1f')
+          echo "::notice::Code coverage: ${COVERAGE}%"
