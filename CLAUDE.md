@@ -5,23 +5,38 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-cargo build                        # compile
-cargo test                         # all tests
+cargo build                        # compile all crates
+cargo test                         # test all crates
+cargo test -p coat-check           # test API crate only
 cargo test <name>                  # single test by name substring
 cargo fmt                          # auto-format
-cargo fmt --check                  # CI format check (exits non-zero if changes needed)
-cargo clippy -- -D warnings        # lint (treat warnings as errors)
-cargo run                          # start server (default port 3000)
-PORT=8080 cargo run                # custom port
+cargo fmt --check                  # CI format check
+cargo clippy -- -D warnings        # lint
+cargo llvm-cov                     # coverage report
+cargo run -p coat-check            # start API server (default port 3000)
+PORT=8080 cargo run -p coat-check  # custom port
 ```
 
-## Architecture
+## Workspace layout
+
+Cargo workspace with crates under `crates/`:
+
+```
+crates/
+└── api/    # coat-check — the HTTP API service
+```
+
+New crates go in `crates/<name>/` and are auto-discovered by `members = ["crates/*"]`.
+
+## Architecture (API crate)
 
 Hexagonal / ports-and-adapters with a strict one-way dependency rule:
 
 ```
 domain/ ← application/ ← ports/ ← adapters/
 ```
+
+All paths below relative to `crates/api/src/`.
 
 - `domain/` — pure Rust, zero async, zero I/O. `recommendation::evaluate()` is the coat-decision algorithm.
 - `ports/inbound.rs` — `CoatCheckPort` trait (what the HTTP layer calls).
