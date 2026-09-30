@@ -89,3 +89,14 @@ jobs:
           echo "$RESPONSE" | jq -e '.locations | length > 0' > /dev/null
 
           kill $SERVER_PID
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: crates/api/Dockerfile
+          push: false
