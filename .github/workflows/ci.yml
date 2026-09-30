@@ -3,11 +3,22 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: webiny/action-conventional-commits@v1.3.0
+
   fmt:
     name: Format
     runs-on: ubuntu-latest
@@ -45,3 +56,34 @@ jobs:
           cargo llvm-cov report
           COVERAGE=$(jq '.data[0].totals.lines.percent' coverage.json | xargs printf '%.1f')
           echo "::notice::Code coverage: ${COVERAGE}%"
+
+  smoke:
+    name: Smoke Test
+    needs: [clippy, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p coat-check
+      - name: Start server and verify
+        run: |
+          PORT=3000 ./target/release/coat-check &
+          SERVER_PID=$!
+          sleep 2
+
+          # Health check
+          curl -sf http://localhost:3000/health
+
+          # Real coat-check request against live Open-Meteo
+          RESPONSE=$(curl -sf -X POST http://localhost:3000/coat-check \
+            -H 'Content-Type: application/json' \
+            -d '{"locations":[{"lat":51.5074,"lon":-0.1278,"label":"London"}]}')
+
+          echo "$RESPONSE" | jq .
+
+          # Verify response shape
+          echo "$RESPONSE" | jq -e '.recommendation' > /dev/null
+          echo "$RESPONSE" | jq -e '.locations | length > 0' > /dev/null
+
+          kill $SERVER_PID
