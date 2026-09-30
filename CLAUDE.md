@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Principles
+
+Keep the project slim. Remove unused code, dependencies, and files — don't leave things around "just in case". If it's not needed, it goes.
+
 ## Commands
 
 ```bash
