@@ -10,10 +10,10 @@ Queries [Open-Meteo](https://open-meteo.com/) (free, no API key) for daily forec
 cargo run
 ```
 
-Server starts on port 3000 (override with `PORT=8080 cargo run`).
+Server starts on port 8080 (override with `PORT=3000 cargo run`).
 
 ```bash
-curl -s -X POST http://localhost:3000/coat-check \
+curl -s -X POST http://localhost:8080/coat-check \
   -H 'Content-Type: application/json' \
   -d '{
     "locations": [

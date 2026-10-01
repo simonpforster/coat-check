@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
 
 jobs:
   pr-title:
@@ -68,17 +69,17 @@ jobs:
       - run: cargo build --release -p coat-check
       - name: Start server and verify
         run: |
-          PORT=3000 ./target/release/coat-check &
+          PORT=8080 ./target/release/coat-check &
           SERVER_PID=$!
 
           # Wait for server to be ready
           for i in $(seq 1 10); do
-            curl -sf http://localhost:3000/health && break
+            curl -sf http://localhost:8080/health && break
             sleep 1
           done
 
           # Real coat-check request against live Open-Meteo (retry up to 3 times)
-          RESPONSE=$(curl -sf --retry 3 --retry-delay 2 -X POST http://localhost:3000/coat-check \
+          RESPONSE=$(curl -sf --retry 3 --retry-delay 2 -X POST http://localhost:8080/coat-check \
             -H 'Content-Type: application/json' \
             -d '{"locations":[{"lat":51.5074,"lon":-0.1278,"label":"London"}]}')
 
