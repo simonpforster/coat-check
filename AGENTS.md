@@ -1,10 +1,12 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents when working with code in this repository.
 
 ## Principles
 
 Keep the project slim. Remove unused code, dependencies, and files — don't leave things around "just in case". If it's not needed, it goes.
+
+All Rust warnings must be fixed, not suppressed. CI treats warnings as errors (`RUSTFLAGS="-D warnings"`).
 
 ## Commits
 
@@ -30,8 +32,8 @@ cargo fmt                          # auto-format
 cargo fmt --check                  # CI format check
 cargo clippy -- -D warnings        # lint
 cargo llvm-cov                     # coverage report
-cargo run -p coat-check            # start API server (default port 3000)
-PORT=8080 cargo run -p coat-check  # custom port
+cargo run -p coat-check            # start API server (default port 8080)
+PORT=3000 cargo run -p coat-check  # custom port
 ```
 
 ## Workspace layout

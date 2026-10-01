@@ -15,9 +15,9 @@ RUN rm crates/api/src/main.rs
 COPY crates/api/src crates/api/src
 RUN touch crates/api/src/main.rs && cargo build --release -p coat-check
 
-FROM debian:bookworm-slim
+FROM debian:12.15-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/coat-check /usr/local/bin/coat-check
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=8080
+EXPOSE 8080
 CMD ["coat-check"]
