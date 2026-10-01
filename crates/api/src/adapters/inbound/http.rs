@@ -405,6 +405,18 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn ready_when_weather_up() {
+        let resp = server(AlwaysNo).get("/ready").await;
+        resp.assert_status_ok();
+    }
+
+    #[tokio::test]
+    async fn not_ready_when_weather_down() {
+        let resp = server(WeatherDown).get("/ready").await;
+        resp.assert_status(StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[tokio::test]
     async fn openapi_spec_generates() {
         let spec = ApiDoc::openapi();
         let json = spec.to_pretty_json().unwrap();

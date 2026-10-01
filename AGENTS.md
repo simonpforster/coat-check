@@ -81,7 +81,8 @@ All async traits use `#[async_trait::async_trait]` — required on both trait de
 POST /coat-check
 { "locations": [{ "lat": 51.5, "lon": -0.1, "label": "Office" }] }
 
-GET /health
+GET /health          # liveness probe (always 200)
+GET /ready           # readiness probe (200 if weather service reachable, 503 otherwise)
 ```
 
 Response `recommendation` is `"coat"`, `"rain_jacket"`, `"umbrella"`, or `"no"`. Cold triggers → coat; heavy rain/thunderstorm → rain jacket; light rain (1–5mm) → umbrella. Multiple locations evaluated independently; worst-case wins overall.
