@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/simonpforster/coat-check/compare/coat-check-v0.3.0...coat-check-v0.4.0) (2026-10-01)
+
+
+### Features
+
+* **coat-check:** add production readiness improvements ([#10](https://github.com/simonpforster/coat-check/issues/10)) ([a63a8f6](https://github.com/simonpforster/coat-check/commit/a63a8f69d5cca9690152f73884e87248da22c094))
+
 ## [0.3.0](https://github.com/simonpforster/coat-check/compare/coat-check-v0.2.1...coat-check-v0.3.0) (2026-09-30)
 
 
