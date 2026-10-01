@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coat Check</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;background:#fafaf9}
+    h1{font-size:1.5rem;margin-bottom:1rem}
+    .form-group{margin-bottom:0.75rem}
+    label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem}
+    input{width:100%;padding:0.5rem;border:1px solid #ccc;border-radius:4px;font-size:1rem}
+    button{padding:0.6rem 1.2rem;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:1rem}
+    button:hover{background:#1d4ed8}
+    .location-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;align-items:end}
+    .result{margin-top:1.5rem;padding:1rem;border-radius:6px;background:#f0fdf4;border:1px solid #bbf7d0}
+    .result.coat{background:#fef2f2;border-color:#fecaca}
+    .result.rain_jacket{background:#eff6ff;border-color:#bfdbfe}
+    .result.umbrella{background:#fefce8;border-color:#fef08a}
+    .result h2{font-size:1.2rem;margin-bottom:0.5rem}
+    .location-detail{margin-top:0.75rem;padding:0.5rem;background:rgba(255,255,255,0.6);border-radius:4px;font-size:0.9rem}
+    .htmx-indicator{display:none}
+    .htmx-request .htmx-indicator{display:inline}
+    .htmx-request button{opacity:0.6}
+    .error{background:#fef2f2;border:1px solid #fecaca;padding:1rem;border-radius:6px;color:#991b1b;margin-top:1.5rem}
+  </style>
+</head>
+<body>
+  <h1>Coat Check</h1>
+  <form hx-post="/check" hx-target="#result" hx-swap="innerHTML">
+    <div class="location-row form-group">
+      <div>
+        <label for="lat">Latitude</label>
+        <input type="number" step="any" name="lat" id="lat" placeholder="51.5" required>
+      </div>
+      <div>
+        <label for="lon">Longitude</label>
+        <input type="number" step="any" name="lon" id="lon" placeholder="-0.1" required>
+      </div>
+      <div>
+        <label for="label">Label</label>
+        <input type="text" name="label" id="label" placeholder="London">
+      </div>
+    </div>
+    <button type="submit">Check <span class="htmx-indicator">...</span></button>
+  </form>
+  <div id="result"></div>
+  <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+</body>
+</html>
