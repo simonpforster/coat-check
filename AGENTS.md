@@ -8,6 +8,14 @@ Keep the project slim. Remove unused code, dependencies, and files — don't lea
 
 All Rust warnings must be fixed, not suppressed. CI treats warnings as errors (`RUSTFLAGS="-D warnings"`).
 
+Before pushing, always run all local checks and fix any issues:
+
+```bash
+cargo fmt
+cargo clippy -- -D warnings
+cargo test
+```
+
 ## Commits
 
 All commits must follow [Conventional Commits](https://www.conventionalcommits.org/). CI enforces this on PRs.

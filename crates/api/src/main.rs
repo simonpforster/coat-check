@@ -29,7 +29,7 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect(&format!("failed to bind to {addr}"));
+        .unwrap_or_else(|_| panic!("failed to bind to {addr}"));
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await

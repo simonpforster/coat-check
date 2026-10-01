@@ -95,7 +95,10 @@ where
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(Arc::new(service))
         .layer(TraceLayer::new_for_http())
-        .layer(TimeoutLayer::with_status_code(StatusCode::GATEWAY_TIMEOUT, Duration::from_secs(30)))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::GATEWAY_TIMEOUT,
+            Duration::from_secs(30),
+        ))
         .layer(CorsLayer::permissive())
 }
 
