@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use axum::{
     extract::{Json, State},
@@ -8,6 +8,7 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
+use tower_http::{cors::CorsLayer, timeout::TimeoutLayer, trace::TraceLayer};
 use tracing::{info, warn};
 use utoipa::{OpenApi, ToSchema};
 use utoipa_swagger_ui::SwaggerUi;
@@ -90,8 +91,15 @@ where
     Router::new()
         .route("/coat-check", post(coat_check_handler::<P>))
         .route("/health", get(|| async { "ok" }))
+        .route("/ready", get(ready_handler::<P>))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(Arc::new(service))
+        .layer(TraceLayer::new_for_http())
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::GATEWAY_TIMEOUT,
+            Duration::from_secs(30),
+        ))
+        .layer(CorsLayer::permissive())
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -193,6 +201,20 @@ where
                 }),
             )
                 .into_response()
+        }
+    }
+}
+
+async fn ready_handler<P>(State(service): State<Arc<P>>) -> impl IntoResponse
+where
+    P: CoatCheckPort,
+{
+    let probe = Location::new(0.0, 0.0, None).unwrap();
+    match service.check(vec![probe]).await {
+        Ok(_) => (StatusCode::OK, "ready").into_response(),
+        Err(e) => {
+            warn!(error = %e, "readiness probe failed");
+            (StatusCode::SERVICE_UNAVAILABLE, "not ready").into_response()
         }
     }
 }
@@ -380,6 +402,18 @@ mod tests {
     async fn health_endpoint() {
         let resp = server(AlwaysNo).get("/health").await;
         resp.assert_status_ok();
+    }
+
+    #[tokio::test]
+    async fn ready_when_weather_up() {
+        let resp = server(AlwaysNo).get("/ready").await;
+        resp.assert_status_ok();
+    }
+
+    #[tokio::test]
+    async fn not_ready_when_weather_down() {
+        let resp = server(WeatherDown).get("/ready").await;
+        resp.assert_status(StatusCode::SERVICE_UNAVAILABLE);
     }
 
     #[tokio::test]
