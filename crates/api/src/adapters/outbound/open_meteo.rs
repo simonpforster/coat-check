@@ -22,14 +22,6 @@ impl OpenMeteoClient {
             base_url: "https://api.open-meteo.com".to_string(),
         }
     }
-
-    #[cfg(test)]
-    pub fn with_base_url(base_url: impl Into<String>) -> Self {
-        Self {
-            http: reqwest::Client::new(),
-            base_url: base_url.into(),
-        }
-    }
 }
 
 impl Default for OpenMeteoClient {
