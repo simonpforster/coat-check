@@ -41,7 +41,7 @@ cargo fmt --check                  # CI format check
 cargo clippy -- -D warnings        # lint
 cargo llvm-cov                     # coverage report
 cargo run -p coat-check            # start API server (default port 8080)
-cargo run -p coat-check-web        # start web frontend (default port 3000)
+cargo run -p coat-check-web        # start web frontend (default port 8080)
 docker compose up                  # run both services
 ```
 
@@ -52,7 +52,7 @@ Cargo workspace with crates under `crates/`:
 ```
 crates/
 ├── api/    # coat-check — JSON API service (port 8080)
-└── web/    # coat-check-web — HTMX frontend (port 3000)
+└── web/    # coat-check-web — HTMX frontend (port 8080)
 ```
 
 New crates go in `crates/<name>/` and are auto-discovered by `members = ["crates/*"]`.
@@ -102,4 +102,4 @@ Thin HTMX + Askama frontend. Calls the API over HTTP — fully decoupled, no Rus
 
 Templates in `crates/web/templates/`, compiled into binary at build time.
 
-**Environment variables:** `API_URL` (default `http://localhost:8080`), `PORT` (default `3000`), `RUST_LOG`.
+**Environment variables:** `API_URL` (default `http://localhost:8080`), `PORT` (default `8080`), `RUST_LOG`.

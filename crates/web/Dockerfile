@@ -21,6 +21,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && groupadd -r app && useradd -r -g app app
 COPY --from=builder /app/target/release/coat-check-web /usr/local/bin/coat-check-web
 USER app
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=8080
+EXPOSE 8080
 CMD ["coat-check-web"]
