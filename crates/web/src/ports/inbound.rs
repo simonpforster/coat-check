@@ -29,10 +29,7 @@ pub struct LocationInput {
 
 #[async_trait::async_trait]
 pub trait WebPort: Send + Sync {
-    async fn check_coat(
-        &self,
-        locations: Vec<LocationInput>,
-    ) -> Result<CheckResult, WebPortError>;
+    async fn check_coat(&self, locations: Vec<LocationInput>) -> Result<CheckResult, WebPortError>;
 
     async fn search_locations(&self, query: &str) -> Result<Vec<Suggestion>, WebPortError>;
 }

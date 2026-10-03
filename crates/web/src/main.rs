@@ -25,10 +25,7 @@ async fn main() {
     let coat_check_client = CoatCheckApiClient::new(api_url.clone());
     let geocoding_client = OpenMeteoGeocodingClient::new();
     let service = WebService::new(coat_check_client, geocoding_client);
-    let config = WebConfig {
-        base_url,
-        ga_id,
-    };
+    let config = WebConfig { base_url, ga_id };
     let app = adapters::inbound::http::router(service, config);
 
     let port: u16 = std::env::var("PORT")

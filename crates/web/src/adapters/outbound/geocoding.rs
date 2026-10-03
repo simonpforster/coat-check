@@ -18,7 +18,6 @@ impl OpenMeteoGeocodingClient {
             base_url: "https://geocoding-api.open-meteo.com/v1/search".into(),
         }
     }
-
 }
 
 impl Default for OpenMeteoGeocodingClient {

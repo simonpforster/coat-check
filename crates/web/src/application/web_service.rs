@@ -26,10 +26,7 @@ impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> WebService<C, G> {
 
 #[async_trait::async_trait]
 impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> WebPort for WebService<C, G> {
-    async fn check_coat(
-        &self,
-        locations: Vec<LocationInput>,
-    ) -> Result<CheckResult, WebPortError> {
+    async fn check_coat(&self, locations: Vec<LocationInput>) -> Result<CheckResult, WebPortError> {
         if locations.is_empty() {
             return Err(WebPortError::NoLocations);
         }
@@ -62,9 +59,9 @@ impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> WebPort for WebServi
                 .locations
                 .into_iter()
                 .map(|r| {
-                    let display_name =
-                        r.label
-                            .unwrap_or_else(|| format!("{:.2}, {:.2}", r.lat, r.lon));
+                    let display_name = r
+                        .label
+                        .unwrap_or_else(|| format!("{:.2}, {:.2}", r.lat, r.lon));
                     let recommendation_label = match r.recommendation.as_str() {
                         "no" => "All clear",
                         "umbrella" => "Umbrella",
@@ -137,7 +134,7 @@ mod tests {
                         lon: -0.1,
                         recommendation: "coat".into(),
                         reasons: vec![
-                            "feels like as low as 5.0\u{00b0}C (threshold 12\u{00b0}C)".into(),
+                            "feels like as low as 5.0\u{00b0}C (threshold 12\u{00b0}C)".into()
                         ],
                         temp_max_celsius: 8.0,
                         temp_min_celsius: 3.0,

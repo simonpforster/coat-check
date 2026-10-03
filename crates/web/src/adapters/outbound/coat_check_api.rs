@@ -58,11 +58,10 @@ impl CoatCheckApiPort for CoatCheckApiClient {
 
         let status = resp.status();
         if !status.is_success() {
-            let body: ApiErrorResponse =
-                resp.json().await.unwrap_or_else(|_| ApiErrorResponse {
-                    error: format!("HTTP {status}"),
-                    detail: None,
-                });
+            let body: ApiErrorResponse = resp.json().await.unwrap_or_else(|_| ApiErrorResponse {
+                error: format!("HTTP {status}"),
+                detail: None,
+            });
             return Err(CoatCheckApiError::Upstream {
                 error: body.error,
                 detail: body.detail,

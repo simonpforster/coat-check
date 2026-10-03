@@ -224,16 +224,13 @@ mod tests {
                     precipitation: "0.0".into(),
                     wind: "5".into(),
                     reasons: vec![
-                        "feels like as low as 5.0\u{00b0}C (threshold 12\u{00b0}C)".into(),
+                        "feels like as low as 5.0\u{00b0}C (threshold 12\u{00b0}C)".into()
                     ],
                 }],
             })
         }
 
-        async fn search_locations(
-            &self,
-            _query: &str,
-        ) -> Result<Vec<Suggestion>, WebPortError> {
+        async fn search_locations(&self, _query: &str) -> Result<Vec<Suggestion>, WebPortError> {
             Ok(vec![])
         }
     }
@@ -263,10 +260,7 @@ mod tests {
             })
         }
 
-        async fn search_locations(
-            &self,
-            _query: &str,
-        ) -> Result<Vec<Suggestion>, WebPortError> {
+        async fn search_locations(&self, _query: &str) -> Result<Vec<Suggestion>, WebPortError> {
             Ok(vec![])
         }
     }
@@ -283,10 +277,7 @@ mod tests {
             Err(WebPortError::InvalidLatitude)
         }
 
-        async fn search_locations(
-            &self,
-            _query: &str,
-        ) -> Result<Vec<Suggestion>, WebPortError> {
+        async fn search_locations(&self, _query: &str) -> Result<Vec<Suggestion>, WebPortError> {
             Ok(vec![])
         }
     }
@@ -305,10 +296,7 @@ mod tests {
             ))
         }
 
-        async fn search_locations(
-            &self,
-            _query: &str,
-        ) -> Result<Vec<Suggestion>, WebPortError> {
+        async fn search_locations(&self, _query: &str) -> Result<Vec<Suggestion>, WebPortError> {
             Ok(vec![])
         }
     }
@@ -325,10 +313,7 @@ mod tests {
             Err(WebPortError::ServiceUnavailable("unused".into()))
         }
 
-        async fn search_locations(
-            &self,
-            query: &str,
-        ) -> Result<Vec<Suggestion>, WebPortError> {
+        async fn search_locations(&self, query: &str) -> Result<Vec<Suggestion>, WebPortError> {
             if query.trim().len() < 2 {
                 return Ok(vec![]);
             }
@@ -354,9 +339,7 @@ mod tests {
     fn locations_json(locs: &[(&str, &str, &str)]) -> String {
         let arr: Vec<serde_json::Value> = locs
             .iter()
-            .map(|(lat, lon, label)| {
-                serde_json::json!({"lat": lat, "lon": lon, "label": label})
-            })
+            .map(|(lat, lon, label)| serde_json::json!({"lat": lat, "lon": lon, "label": label}))
             .collect();
         serde_json::to_string(&arr).unwrap()
     }
@@ -466,10 +449,7 @@ mod tests {
     #[tokio::test]
     async fn search_returns_suggestions() {
         let s = server(WithSuggestions);
-        let resp = s
-            .get("/search")
-            .add_query_param("q", "Reading")
-            .await;
+        let resp = s.get("/search").add_query_param("q", "Reading").await;
         resp.assert_status_ok();
         let body = resp.text();
         assert!(body.contains("suggestion"));
