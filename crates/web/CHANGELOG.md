@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.4.0...coat-check-web-v0.5.0) (2026-10-03)
+
+
+### Features
+
+* **coat-check-web:** DDD architecture + multi-location support ([#18](https://github.com/simonpforster/coat-check/issues/18)) ([405a5c5](https://github.com/simonpforster/coat-check/commit/405a5c5353193962f02860bf443fde8fe1b3f331))
+
 ## [0.4.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.3.0...coat-check-web-v0.4.0) (2026-10-03)
 
 
