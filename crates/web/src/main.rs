@@ -21,10 +21,11 @@ struct AppState {
     api_url: String,
     geocode_url: String,
     base_url: Option<String>,
+    ga_id: Option<String>,
 }
 
 impl AppState {
-    fn new(api_url: String, base_url: Option<String>) -> Self {
+    fn new(api_url: String, base_url: Option<String>, ga_id: Option<String>) -> Self {
         Self {
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(15))
@@ -33,6 +34,7 @@ impl AppState {
             api_url,
             geocode_url: "https://geocoding-api.open-meteo.com/v1/search".into(),
             base_url,
+            ga_id,
         }
     }
 
@@ -175,6 +177,7 @@ struct CheckForm {
 #[template(path = "base.html")]
 struct IndexTemplate {
     base_url: Option<String>,
+    ga_id: Option<String>,
 }
 
 #[derive(Template, WebTemplate)]
@@ -228,6 +231,7 @@ struct SearchQuery {
 async fn index(State(state): State<Arc<AppState>>) -> IndexTemplate {
     IndexTemplate {
         base_url: state.base_url.clone(),
+        ga_id: state.ga_id.clone(),
     }
 }
 
@@ -373,7 +377,8 @@ async fn main() {
 
     let api_url = std::env::var("API_URL").unwrap_or_else(|_| "http://localhost:8080".into());
     let base_url = std::env::var("BASE_URL").ok();
-    let state = AppState::new(api_url.clone(), base_url);
+    let ga_id = std::env::var("GA_ID").ok();
+    let state = AppState::new(api_url.clone(), base_url, ga_id);
     let app = router(state);
 
     let port: u16 = std::env::var("PORT")
@@ -427,7 +432,7 @@ mod tests {
     }
 
     async fn test_server(mock_url: &str) -> TestServer {
-        let state = AppState::new(mock_url.to_string(), None);
+        let state = AppState::new(mock_url.to_string(), None, None);
         TestServer::new(router(state))
     }
 
@@ -599,7 +604,7 @@ mod tests {
             .mount(&mock)
             .await;
 
-        let mut state = AppState::new("http://127.0.0.1:1".into(), None);
+        let mut state = AppState::new("http://127.0.0.1:1".into(), None, None);
         state.geocode_url = format!("{}/v1/search", mock.uri());
         let server = TestServer::new(router(state));
         let resp = server.get("/search").add_query_param("q", "Reading").await;
@@ -612,7 +617,7 @@ mod tests {
 
     #[tokio::test]
     async fn search_geocoding_down_returns_empty() {
-        let mut state = AppState::new("http://127.0.0.1:1".into(), None);
+        let mut state = AppState::new("http://127.0.0.1:1".into(), None, None);
         state.geocode_url = "http://127.0.0.1:1/v1/search".into();
         let server = TestServer::new(router(state));
         let resp = server.get("/search").add_query_param("q", "London").await;

@@ -17,6 +17,7 @@ services:
     environment:
       - API_URL=http://api:8080
       - BASE_URL=${BASE_URL:-}
+      - GA_ID=${GA_ID:-}
       - RUST_LOG=info
     depends_on:
       - api
