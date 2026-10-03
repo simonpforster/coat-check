@@ -109,7 +109,7 @@ jobs:
           curl -sf http://localhost:3000/ | grep -q 'Coat Check'
 
           BODY=$(curl -sf --retry 3 --retry-delay 2 -X POST http://localhost:3000/check \
-            -d 'lat=51.5074&lon=-0.1278&label=London')
+            --data-urlencode 'locations=[{"lat":"51.5074","lon":"-0.1278","label":"London"}]')
           echo "$BODY" | grep -qE 'coat|No coat needed'
 
           kill $WEB_PID $API_PID
