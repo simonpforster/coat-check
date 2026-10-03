@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Coat Check — Do I need a coat today?</title>
-  <meta name="description" content="Check the weather and find out if you need a coat, rain jacket, or umbrella today. Search any city worldwide for a quick recommendation.">
+  <title>Coat Check — Do I need a coat or umbrella today?</title>
+  <meta name="description" content="Should I bring a coat, umbrella, or rain jacket today? Search any city for a weather-based recommendation — find out in seconds whether you need a coat or umbrella before you leave.">
   <meta name="theme-color" content="#2563eb">
-  <meta property="og:title" content="Coat Check — Do I need a coat today?">
-  <meta property="og:description" content="Check the weather and find out if you need a coat, rain jacket, or umbrella today.">
+  <meta property="og:title" content="Coat Check — Do I need a coat or umbrella today?">
+  <meta property="og:description" content="Should I bring a coat, umbrella, or rain jacket today? Search any city for a quick weather-based recommendation.">
   <meta property="og:type" content="website">
   {% if let Some(url) = base_url %}
   <meta property="og:url" content="{{ url }}">
   <link rel="canonical" href="{{ url }}">
   {% endif %}
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Coat Check — Do I need a coat today?">
-  <meta name="twitter:description" content="Check the weather and find out if you need a coat, rain jacket, or umbrella today.">
+  <meta name="twitter:title" content="Coat Check — Do I need a coat or umbrella today?">
+  <meta name="twitter:description" content="Should I bring a coat, umbrella, or rain jacket today? Search any city for a quick weather-based recommendation.">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,-apple-system,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;background:#fafaf9}
@@ -47,7 +47,7 @@
 <body>
   <header>
     <h1>Coat Check</h1>
-    <p>Do I need a coat today?</p>
+    <p>Do I need a coat or umbrella today?</p>
   </header>
   <main>
   <form hx-post="/check" hx-target="#result" hx-swap="innerHTML">
