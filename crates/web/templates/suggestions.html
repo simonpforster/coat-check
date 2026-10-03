@@ -1,0 +1,5 @@
+{% for s in suggestions %}
+<button type="button" class="suggestion" onclick="selectLocation('{{ s.name }}', '{{ s.lat }}', '{{ s.lon }}')">
+  {{ s.name }}
+</button>
+{% endfor %}

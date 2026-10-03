@@ -97,6 +97,7 @@ Thin HTMX + Askama frontend. Calls the API over HTTP — fully decoupled, no Rus
 
 - `GET /` — server-rendered form page (Askama template, inline CSS, HTMX from CDN)
 - `POST /check` — HTMX form submission, returns HTML fragment swapped into page
+- `GET /search?q=...` — location autocomplete via Open-Meteo Geocoding API, returns HTML suggestion buttons via HTMX
 - `GET /health` — liveness probe
 
 Templates in `crates/web/templates/`, compiled into binary at build time.

@@ -66,13 +66,12 @@ jobs:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release -p coat-check
-      - name: Start server and verify
+      - run: cargo build --release -p coat-check -p coat-check-web
+      - name: Smoke test API
         run: |
           PORT=8080 ./target/release/coat-check &
-          SERVER_PID=$!
+          API_PID=$!
 
-          # Wait for server to be ready
           for i in $(seq 1 10); do
             curl -sf http://localhost:8080/health && break
             sleep 1
@@ -84,15 +83,41 @@ jobs:
             -d '{"locations":[{"lat":51.5074,"lon":-0.1278,"label":"London"}]}')
 
           echo "$RESPONSE" | jq .
-
-          # Verify response shape
           echo "$RESPONSE" | jq -e '.recommendation' > /dev/null
           echo "$RESPONSE" | jq -e '.locations | length > 0' > /dev/null
 
-          kill $SERVER_PID
+          kill $API_PID
 
-  docker:
-    name: Docker Build
+      - name: Smoke test Web
+        run: |
+          PORT=8080 ./target/release/coat-check &
+          API_PID=$!
+
+          for i in $(seq 1 10); do
+            curl -sf http://localhost:8080/health && break
+            sleep 1
+          done
+
+          API_URL=http://localhost:8080 PORT=3000 ./target/release/coat-check-web &
+          WEB_PID=$!
+
+          for i in $(seq 1 10); do
+            curl -sf http://localhost:3000/health && break
+            sleep 1
+          done
+
+          # Verify index page loads with form
+          curl -sf http://localhost:3000/ | grep -q 'Coat Check'
+
+          # Verify check endpoint works end-to-end
+          BODY=$(curl -sf --retry 3 --retry-delay 2 -X POST http://localhost:3000/check \
+            -d 'lat=51.5074&lon=-0.1278&label=London')
+          echo "$BODY" | grep -qE 'coat|No coat needed'
+
+          kill $WEB_PID $API_PID
+
+  docker-api:
+    name: Docker Build (API)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -100,4 +125,15 @@ jobs:
         with:
           context: .
           file: crates/api/Dockerfile
+          push: false
+
+  docker-web:
+    name: Docker Build (Web)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: crates/web/Dockerfile
           push: false

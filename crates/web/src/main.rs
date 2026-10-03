@@ -16,24 +16,26 @@ use tracing::{info, warn};
 // ── API client ───────────────────────────────────────────────────────────────
 
 #[derive(Clone)]
-struct ApiClient {
+struct AppState {
     http: reqwest::Client,
-    base_url: String,
+    api_url: String,
+    geocode_url: String,
 }
 
-impl ApiClient {
-    fn new(base_url: String) -> Self {
+impl AppState {
+    fn new(api_url: String) -> Self {
         Self {
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(15))
                 .build()
                 .expect("failed to build HTTP client"),
-            base_url,
+            api_url,
+            geocode_url: "https://geocoding-api.open-meteo.com/v1/search".into(),
         }
     }
 
     async fn check(&self, request: &ApiRequest) -> Result<ApiResponse, ApiError> {
-        let url = format!("{}/coat-check", self.base_url);
+        let url = format!("{}/coat-check", self.api_url);
         let resp = self
             .http
             .post(&url)
@@ -109,6 +111,53 @@ enum ApiError {
     },
 }
 
+// ── Geocoding ────────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct GeocodingResponse {
+    #[serde(default)]
+    results: Vec<GeocodingResult>,
+}
+
+#[derive(Deserialize)]
+struct GeocodingResult {
+    name: String,
+    latitude: f64,
+    longitude: f64,
+    country: Option<String>,
+    admin1: Option<String>,
+}
+
+impl GeocodingResult {
+    fn display_name(&self) -> String {
+        let mut parts = vec![self.name.clone()];
+        if let Some(ref admin1) = self.admin1 {
+            if admin1 != &self.name {
+                parts.push(admin1.clone());
+            }
+        }
+        if let Some(ref country) = self.country {
+            parts.push(country.clone());
+        }
+        parts.join(", ")
+    }
+}
+
+impl AppState {
+    async fn geocode(&self, query: &str) -> Result<Vec<GeocodingResult>, String> {
+        let resp = self
+            .http
+            .get(&self.geocode_url)
+            .query(&[("name", query), ("count", "5"), ("language", "en")])
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let body: GeocodingResponse = resp.json().await.map_err(|e| e.to_string())?;
+        Ok(body.results)
+    }
+}
+
 // ── Form DTO ─────────────────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
@@ -151,14 +200,68 @@ struct ErrorTemplate {
     detail: Option<String>,
 }
 
+#[derive(Template, WebTemplate)]
+#[template(path = "suggestions.html")]
+struct SuggestionsTemplate {
+    suggestions: Vec<Suggestion>,
+}
+
+struct Suggestion {
+    name: String,
+    lat: String,
+    lon: String,
+}
+
+// ── Search query ─────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+struct SearchQuery {
+    q: String,
+}
+
 // ── Handlers ─────────────────────────────────────────────────────────────────
 
 async fn index() -> IndexTemplate {
     IndexTemplate
 }
 
+async fn search_handler(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Query(query): axum::extract::Query<SearchQuery>,
+) -> impl IntoResponse {
+    let q = query.q.trim();
+    if q.len() < 2 {
+        return SuggestionsTemplate {
+            suggestions: vec![],
+        }
+        .into_response();
+    }
+
+    match state.geocode(q).await {
+        Ok(results) => SuggestionsTemplate {
+            suggestions: results
+                .into_iter()
+                .take(5)
+                .map(|r| Suggestion {
+                    lat: format!("{:.6}", r.latitude),
+                    lon: format!("{:.6}", r.longitude),
+                    name: r.display_name(),
+                })
+                .collect(),
+        }
+        .into_response(),
+        Err(msg) => {
+            warn!(error = %msg, "geocoding failed");
+            SuggestionsTemplate {
+                suggestions: vec![],
+            }
+            .into_response()
+        }
+    }
+}
+
 async fn check_handler(
-    State(client): State<Arc<ApiClient>>,
+    State(client): State<Arc<AppState>>,
     Form(form): Form<CheckForm>,
 ) -> impl IntoResponse {
     let lat: f64 = match form.lat.parse() {
@@ -242,12 +345,13 @@ async fn check_handler(
 
 // ── Router ───────────────────────────────────────────────────────────────────
 
-fn router(client: ApiClient) -> Router {
+fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(index))
+        .route("/search", get(search_handler))
         .route("/check", axum::routing::post(check_handler))
         .route("/health", get(|| async { "ok" }))
-        .with_state(Arc::new(client))
+        .with_state(Arc::new(state))
         .layer(TraceLayer::new_for_http())
 }
 
@@ -262,8 +366,8 @@ async fn main() {
         .init();
 
     let api_url = std::env::var("API_URL").unwrap_or_else(|_| "http://localhost:8080".into());
-    let client = ApiClient::new(api_url.clone());
-    let app = router(client);
+    let state = AppState::new(api_url.clone());
+    let app = router(state);
 
     let port: u16 = std::env::var("PORT")
         .ok()
@@ -316,8 +420,8 @@ mod tests {
     }
 
     async fn test_server(mock_url: &str) -> TestServer {
-        let client = ApiClient::new(mock_url.to_string());
-        TestServer::new(router(client))
+        let state = AppState::new(mock_url.to_string());
+        TestServer::new(router(state))
     }
 
     fn coat_response_json() -> serde_json::Value {
@@ -459,5 +563,54 @@ mod tests {
         let server = test_server(&mock.uri()).await;
         let resp = server.get("/health").await;
         resp.assert_status_ok();
+    }
+
+    #[tokio::test]
+    async fn search_short_query_returns_empty() {
+        let mock = MockServer::start().await;
+        let server = test_server(&mock.uri()).await;
+        let resp = server.get("/search").add_query_param("q", "L").await;
+        resp.assert_status_ok();
+        let body = resp.text();
+        assert!(!body.contains("suggestion"));
+    }
+
+    #[tokio::test]
+    async fn search_returns_suggestions() {
+        let mock = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/search"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "results": [{
+                    "name": "Reading",
+                    "latitude": 51.45625,
+                    "longitude": -0.97113,
+                    "country": "United Kingdom",
+                    "admin1": "England"
+                }]
+            })))
+            .mount(&mock)
+            .await;
+
+        let mut state = AppState::new("http://127.0.0.1:1".into());
+        state.geocode_url = format!("{}/v1/search", mock.uri());
+        let server = TestServer::new(router(state));
+        let resp = server.get("/search").add_query_param("q", "Reading").await;
+        resp.assert_status_ok();
+        let body = resp.text();
+        assert!(body.contains("suggestion"));
+        assert!(body.contains("Reading"));
+        assert!(body.contains("United Kingdom"));
+    }
+
+    #[tokio::test]
+    async fn search_geocoding_down_returns_empty() {
+        let mut state = AppState::new("http://127.0.0.1:1".into());
+        state.geocode_url = "http://127.0.0.1:1/v1/search".into();
+        let server = TestServer::new(router(state));
+        let resp = server.get("/search").add_query_param("q", "London").await;
+        resp.assert_status_ok();
+        let body = resp.text();
+        assert!(!body.contains("suggestion"));
     }
 }
