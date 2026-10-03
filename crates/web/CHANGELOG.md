@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.3.0...coat-check-web-v0.4.0) (2026-10-03)
+
+
+### Features
+
+* **coat-check-web:** add Google Analytics and broaden SEO for jacket queries ([#16](https://github.com/simonpforster/coat-check/issues/16)) ([b10c3a8](https://github.com/simonpforster/coat-check/commit/b10c3a8049c20aab8c2e87cfb6731cb950c6323a))
+
 ## [0.3.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.2.0...coat-check-web-v0.3.0) (2026-10-03)
 
 
