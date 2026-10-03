@@ -17,18 +17,20 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     outputs:
-      release_created: ${{ steps.release.outputs['crates/api--release_created'] }}
-      version: ${{ steps.release.outputs['crates/api--version'] }}
+      api_release_created: ${{ steps.release.outputs['crates/api--release_created'] }}
+      api_version: ${{ steps.release.outputs['crates/api--version'] }}
+      web_release_created: ${{ steps.release.outputs['crates/web--release_created'] }}
+      web_version: ${{ steps.release.outputs['crates/web--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  docker:
-    name: Build & Push Docker Image
+  docker-api:
+    name: Push API Image
     needs: release
-    if: needs.release.outputs.release_created == 'true'
+    if: needs.release.outputs.api_release_created == 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -45,5 +47,28 @@ jobs:
           file: crates/api/Dockerfile
           push: true
           tags: |
-            ghcr.io/simonpforster/coat-check:${{ needs.release.outputs.version }}
-            ghcr.io/simonpforster/coat-check:latest
+            ghcr.io/simonpforster/coat-check-api:${{ needs.release.outputs.api_version }}
+            ghcr.io/simonpforster/coat-check-api:latest
+
+  docker-web:
+    name: Push Web Image
+    needs: release
+    if: needs.release.outputs.web_release_created == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: crates/web/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/simonpforster/coat-check-web:${{ needs.release.outputs.web_version }}
+            ghcr.io/simonpforster/coat-check-web:latest

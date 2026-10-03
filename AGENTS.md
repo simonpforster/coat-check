@@ -41,7 +41,8 @@ cargo fmt --check                  # CI format check
 cargo clippy -- -D warnings        # lint
 cargo llvm-cov                     # coverage report
 cargo run -p coat-check            # start API server (default port 8080)
-PORT=3000 cargo run -p coat-check  # custom port
+cargo run -p coat-check-web        # start web frontend (default port 8080)
+docker compose up                  # run both services
 ```
 
 ## Workspace layout
@@ -50,7 +51,8 @@ Cargo workspace with crates under `crates/`:
 
 ```
 crates/
-└── api/    # coat-check — the HTTP API service
+├── api/    # coat-check — JSON API service (port 8080)
+└── web/    # coat-check-web — HTMX frontend (port 8080)
 ```
 
 New crates go in `crates/<name>/` and are auto-discovered by `members = ["crates/*"]`.
@@ -88,3 +90,16 @@ GET /ready           # readiness probe (200 if weather service reachable, 503 ot
 Response `recommendation` is `"coat"`, `"rain_jacket"`, `"umbrella"`, or `"no"`. Cold triggers → coat; heavy rain/thunderstorm → rain jacket; light rain (1–5mm) → umbrella. Multiple locations evaluated independently; worst-case wins overall.
 
 Swagger UI served at `/swagger-ui`. OpenAPI spec at `/api-docs/openapi.json`. DTOs use `utoipa::ToSchema`; handler uses `#[utoipa::path]`.
+
+## Web frontend (crates/web/)
+
+Thin HTMX + Askama frontend. Calls the API over HTTP — fully decoupled, no Rust dependency on the API crate.
+
+- `GET /` — server-rendered form page (Askama template, inline CSS, HTMX from CDN)
+- `POST /check` — HTMX form submission, returns HTML fragment swapped into page
+- `GET /search?q=...` — location autocomplete via Open-Meteo Geocoding API, returns HTML suggestion buttons via HTMX
+- `GET /health` — liveness probe
+
+Templates in `crates/web/templates/`, compiled into binary at build time.
+
+**Environment variables:** `API_URL` (default `http://localhost:8080`), `PORT` (default `8080`), `RUST_LOG`.

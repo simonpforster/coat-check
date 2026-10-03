@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coat Check</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;background:#fafaf9}
+    h1{font-size:1.5rem;margin-bottom:1rem}
+    .form-group{margin-bottom:0.75rem}
+    label{display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem}
+    input{width:100%;padding:0.5rem;border:1px solid #ccc;border-radius:4px;font-size:1rem}
+    button{padding:0.6rem 1.2rem;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:1rem}
+    button:hover{background:#1d4ed8}
+    .search-wrap{position:relative}
+    #suggestions{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ccc;border-top:none;border-radius:0 0 4px 4px;z-index:10;display:none}
+    #suggestions:not(:empty){display:block}
+    .suggestion{display:block;width:100%;text-align:left;padding:0.5rem;background:none;color:#1a1a1a;border:none;border-bottom:1px solid #eee;cursor:pointer;font-size:0.9rem}
+    .suggestion:hover{background:#f0f0f0}
+    .selected-location{font-size:0.85rem;color:#555;margin-top:0.25rem}
+    .result{margin-top:1.5rem;padding:1rem;border-radius:6px;background:#f0fdf4;border:1px solid #bbf7d0}
+    .result.coat{background:#fef2f2;border-color:#fecaca}
+    .result.rain_jacket{background:#eff6ff;border-color:#bfdbfe}
+    .result.umbrella{background:#fefce8;border-color:#fef08a}
+    .result h2{font-size:1.2rem;margin-bottom:0.5rem}
+    .location-detail{margin-top:0.75rem;padding:0.5rem;background:rgba(255,255,255,0.6);border-radius:4px;font-size:0.9rem}
+    .htmx-indicator{display:none}
+    .htmx-request .htmx-indicator{display:inline}
+    .htmx-request button{opacity:0.6}
+    .error{background:#fef2f2;border:1px solid #fecaca;padding:1rem;border-radius:6px;color:#991b1b;margin-top:1.5rem}
+  </style>
+</head>
+<body>
+  <h1>Coat Check</h1>
+  <form hx-post="/check" hx-target="#result" hx-swap="innerHTML">
+    <div class="form-group search-wrap">
+      <label for="search">Location</label>
+      <input type="text" id="search" name="q" placeholder="Search for a city..."
+             hx-get="/search" hx-trigger="keyup changed delay:300ms" hx-target="#suggestions"
+             autocomplete="off">
+      <div id="suggestions"></div>
+    </div>
+    <div class="selected-location" id="selected-display"></div>
+    <input type="hidden" name="lat" id="lat">
+    <input type="hidden" name="lon" id="lon">
+    <input type="hidden" name="label" id="label">
+    <button type="submit">Check <span class="htmx-indicator">...</span></button>
+  </form>
+  <div id="result"></div>
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0/dist/htmx.min.js" integrity="sha384-BvJpBiO8Kh31EqtJe5DRIeWrHWnCGkwytKs9NKFi86Hhw96dEqdEMzZDeK9iEGTc" crossorigin="anonymous"></script>
+  <script>
+    function selectLocation(name, lat, lon) {
+      document.getElementById('lat').value = lat;
+      document.getElementById('lon').value = lon;
+      document.getElementById('label').value = name;
+      document.getElementById('search').value = name;
+      document.getElementById('selected-display').textContent = name + ' (' + lat + ', ' + lon + ')';
+      document.getElementById('suggestions').innerHTML = '';
+    }
+  </script>
+</body>
+</html>

@@ -2,7 +2,13 @@
   "packages": {
     "crates/api": {
       "release-type": "rust",
-      "component": "coat-check",
+      "component": "coat-check-api",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true
+    },
+    "crates/web": {
+      "release-type": "rust",
+      "component": "coat-check-web",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true
     }

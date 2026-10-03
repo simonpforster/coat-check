@@ -1,0 +1,20 @@
+<div class="result {{ overall_class }}">
+  <h2>
+    {% if recommendation == "no" %}No coat needed today
+    {% else if recommendation == "umbrella" %}Bring an umbrella
+    {% else if recommendation == "rain_jacket" %}Bring a rain jacket
+    {% else if recommendation == "coat" %}Bring a coat
+    {% else %}{{ recommendation }}
+    {% endif %}
+  </h2>
+  <p>{{ reason }}</p>
+  {% for loc in locations %}
+  <div class="location-detail">
+    <strong>{{ loc.display_name }}</strong>: {{ loc.recommendation_label }}
+    <br>{{ loc.temp_min }}&ndash;{{ loc.temp_max }} (feels like {{ loc.feels_like }}) &middot; {{ loc.precipitation }}mm &middot; {{ loc.wind }}km/h
+    {% for r in loc.reasons %}
+    <br>&mdash; {{ r }}
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
