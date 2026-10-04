@@ -3,7 +3,10 @@ mod application;
 mod domain;
 mod ports;
 
-use adapters::outbound::{email::SmtpEmailSender, open_meteo::OpenMeteoClient, postgres::PgStore};
+use adapters::outbound::{
+    email::SmtpEmailSender, log_notifier::LogNotifier, open_meteo::OpenMeteoClient,
+    postgres::PgStore,
+};
 use application::{coat_check_service::CoatCheckService, feedback_service::FeedbackService};
 use sqlx::postgres::PgPoolOptions;
 use tokio::signal;
@@ -95,14 +98,16 @@ async fn main() {
             match SmtpEmailSender::new(&host, &from_email, base_url) {
                 Ok(sender) => {
                     tokio::spawn(application::notification_worker::run(pg_store, sender));
-                    tracing::info!("notification worker started");
+                    tracing::info!("notification worker started (SMTP)");
                 }
                 Err(e) => {
                     tracing::warn!(error = %e, "failed to configure SMTP, email worker disabled");
                 }
             }
         } else {
-            tracing::info!("SMTP_HOST not set, email worker disabled");
+            let notifier = LogNotifier::new(base_url);
+            tokio::spawn(application::notification_worker::run(pg_store, notifier));
+            tracing::info!("notification worker started (log-only, no SMTP)");
         }
 
         tracing::info!("feedback enabled (Postgres connected)");
