@@ -1,11 +1,12 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CheckResult {
+    pub prediction_id: Option<String>,
     pub recommendation: String,
     pub reason: String,
     pub locations: Vec<LocationView>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LocationView {
     pub display_name: String,
     pub recommendation_label: String,

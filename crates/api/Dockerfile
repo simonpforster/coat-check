@@ -13,6 +13,7 @@ RUN rm crates/api/src/main.rs
 
 # Build actual source
 COPY crates/api/src crates/api/src
+COPY crates/api/migrations crates/api/migrations
 RUN touch crates/api/src/main.rs && cargo build --release -p coat-check
 
 FROM debian:12.15-slim

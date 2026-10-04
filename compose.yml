@@ -1,4 +1,15 @@
 services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: coatcheck
+      POSTGRES_USER: coatcheck
+      POSTGRES_PASSWORD: coatcheck
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   api:
     build:
       context: .
@@ -7,6 +18,12 @@ services:
       - "8080:8080"
     environment:
       - RUST_LOG=info
+      - DATABASE_URL=postgres://coatcheck:coatcheck@db:5432/coatcheck
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@coatcheck.app}
+    depends_on:
+      - db
 
   web:
     build:
@@ -21,3 +38,6 @@ services:
       - RUST_LOG=info
     depends_on:
       - api
+
+volumes:
+  pgdata:

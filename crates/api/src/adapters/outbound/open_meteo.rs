@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use serde::Deserialize;
 use tracing::{info, warn};
 
@@ -80,6 +81,55 @@ impl WeatherPort for OpenMeteoClient {
             longitude = location.longitude,
             "forecast received"
         );
+
+        to_domain_forecast(location, parsed)
+    }
+
+    async fn fetch_daily_observation(
+        &self,
+        location: &Location,
+        date: NaiveDate,
+    ) -> Result<DailyForecast, WeatherPortError> {
+        let date_str = date.format("%Y-%m-%d");
+        let url = format!(
+            "{}/v1/forecast\
+             ?latitude={}&longitude={}\
+             &daily=temperature_2m_max,temperature_2m_min,\
+             apparent_temperature_min,\
+             precipitation_sum,wind_speed_10m_max,snowfall_sum,weather_code\
+             &start_date={}&end_date={}\
+             &timezone=auto",
+            self.base_url, location.latitude, location.longitude, date_str, date_str
+        );
+
+        info!(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            %date,
+            "fetching historical observation from Open-Meteo"
+        );
+
+        let response = self
+            .http
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| WeatherPortError::Network(e.to_string()))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            warn!(status = status.as_u16(), body = %body, "Open-Meteo returned error");
+            return Err(WeatherPortError::Upstream {
+                status: status.as_u16(),
+                body,
+            });
+        }
+
+        let parsed: OpenMeteoResponse = response
+            .json()
+            .await
+            .map_err(|e| WeatherPortError::Parse(e.to_string()))?;
 
         to_domain_forecast(location, parsed)
     }

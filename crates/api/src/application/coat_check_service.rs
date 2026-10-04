@@ -122,6 +122,17 @@ mod tests {
                 .cloned()
                 .ok_or_else(|| WeatherPortError::Network("no more forecasts".into()))
         }
+
+        async fn fetch_daily_observation(
+            &self,
+            _location: &Location,
+            _date: chrono::NaiveDate,
+        ) -> Result<DailyForecast, WeatherPortError> {
+            self.forecasts
+                .first()
+                .cloned()
+                .ok_or_else(|| WeatherPortError::Network("no forecasts".into()))
+        }
     }
 
     fn london() -> Location {

@@ -84,6 +84,7 @@ jobs:
 
           echo "$RESPONSE" | jq .
           echo "$RESPONSE" | jq -e '.recommendation' > /dev/null
+          echo "$RESPONSE" | jq -e '.prediction_id' > /dev/null
           echo "$RESPONSE" | jq -e '.locations | length > 0' > /dev/null
 
           kill $API_PID

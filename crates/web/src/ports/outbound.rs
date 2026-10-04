@@ -22,6 +22,7 @@ pub struct CoatCheckLocation {
 
 #[derive(Clone)]
 pub struct CoatCheckResult {
+    pub prediction_id: Option<String>,
     pub recommendation: String,
     pub reason: String,
     pub locations: Vec<CoatCheckLocationResult>,
@@ -47,6 +48,44 @@ pub trait CoatCheckApiPort: Send + Sync {
         &self,
         locations: Vec<CoatCheckLocation>,
     ) -> Result<CoatCheckResult, CoatCheckApiError>;
+}
+
+// ── Feedback API port ───────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Error)]
+pub enum FeedbackApiError {
+    #[error("network error: {0}")]
+    Network(String),
+    #[error("API error: {0}")]
+    Api(String),
+}
+
+pub struct PredictionResponse {
+    #[allow(dead_code)]
+    pub id: String,
+    pub recommendation: String,
+    pub reason: String,
+}
+
+#[async_trait::async_trait]
+pub trait FeedbackApiPort: Send + Sync {
+    async fn register_email(
+        &self,
+        prediction_id: &str,
+        email: &str,
+    ) -> Result<(), FeedbackApiError>;
+
+    async fn get_prediction(
+        &self,
+        prediction_id: &str,
+    ) -> Result<PredictionResponse, FeedbackApiError>;
+
+    async fn submit_feedback(
+        &self,
+        prediction_id: &str,
+        accurate: bool,
+        comment: Option<&str>,
+    ) -> Result<(), FeedbackApiError>;
 }
 
 // ── Geocoding port ──────────────────────────────────────────────────────────

@@ -5,27 +5,40 @@ use crate::{
     },
     ports::{
         inbound::{LocationInput, WebPort, WebPortError},
-        outbound::{CoatCheckApiError, CoatCheckApiPort, CoatCheckLocation, GeocodingPort},
+        outbound::{
+            CoatCheckApiError, CoatCheckApiPort, CoatCheckLocation, FeedbackApiPort, GeocodingPort,
+            PredictionResponse,
+        },
     },
 };
 
 #[derive(Clone)]
-pub struct WebService<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> {
+pub struct WebService<
+    C: CoatCheckApiPort + Clone,
+    G: GeocodingPort + Clone,
+    F: FeedbackApiPort + Clone,
+> {
     coat_check: C,
     geocoding: G,
+    feedback: F,
 }
 
-impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> WebService<C, G> {
-    pub fn new(coat_check: C, geocoding: G) -> Self {
+impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone, F: FeedbackApiPort + Clone>
+    WebService<C, G, F>
+{
+    pub fn new(coat_check: C, geocoding: G, feedback: F) -> Self {
         Self {
             coat_check,
             geocoding,
+            feedback,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> WebPort for WebService<C, G> {
+impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone, F: FeedbackApiPort + Clone> WebPort
+    for WebService<C, G, F>
+{
     async fn check_coat(&self, locations: Vec<LocationInput>) -> Result<CheckResult, WebPortError> {
         if locations.is_empty() {
             return Err(WebPortError::NoLocations);
@@ -53,6 +66,7 @@ impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> WebPort for WebServi
             })?;
 
         Ok(CheckResult {
+            prediction_id: resp.prediction_id,
             recommendation: resp.recommendation.clone(),
             reason: resp.reason,
             locations: resp
@@ -107,6 +121,35 @@ impl<C: CoatCheckApiPort + Clone, G: GeocodingPort + Clone> WebPort for WebServi
             })
             .collect())
     }
+
+    async fn register_email(&self, prediction_id: &str, email: &str) -> Result<(), WebPortError> {
+        self.feedback
+            .register_email(prediction_id, email)
+            .await
+            .map_err(|e| WebPortError::FeedbackError(e.to_string()))
+    }
+
+    async fn get_prediction(
+        &self,
+        prediction_id: &str,
+    ) -> Result<PredictionResponse, WebPortError> {
+        self.feedback
+            .get_prediction(prediction_id)
+            .await
+            .map_err(|e| WebPortError::FeedbackError(e.to_string()))
+    }
+
+    async fn submit_feedback(
+        &self,
+        prediction_id: &str,
+        accurate: bool,
+        comment: Option<&str>,
+    ) -> Result<(), WebPortError> {
+        self.feedback
+            .submit_feedback(prediction_id, accurate, comment)
+            .await
+            .map_err(|e| WebPortError::FeedbackError(e.to_string()))
+    }
 }
 
 #[cfg(test)]
@@ -114,7 +157,8 @@ mod tests {
     use super::*;
     use crate::ports::outbound::{
         CoatCheckApiError, CoatCheckApiPort, CoatCheckLocation, CoatCheckLocationResult,
-        CoatCheckResult, GeocodingError, GeocodingPort, GeocodingResult,
+        CoatCheckResult, FeedbackApiError, FeedbackApiPort, GeocodingError, GeocodingPort,
+        GeocodingResult,
     };
 
     #[derive(Clone)]
@@ -126,6 +170,7 @@ mod tests {
         fn coat() -> Self {
             Self {
                 result: Ok(CoatCheckResult {
+                    prediction_id: Some("test-id".into()),
                     recommendation: "coat".into(),
                     reason: "London: feels like as low as 5.0\u{00b0}C".into(),
                     locations: vec![CoatCheckLocationResult {
@@ -149,6 +194,7 @@ mod tests {
         fn no_coat() -> Self {
             Self {
                 result: Ok(CoatCheckResult {
+                    prediction_id: Some("test-id".into()),
                     recommendation: "no".into(),
                     reason: "No coat or jacket needed at any of your locations today.".into(),
                     locations: vec![CoatCheckLocationResult {
@@ -191,6 +237,7 @@ mod tests {
         ) -> Result<CoatCheckResult, CoatCheckApiError> {
             match &self.result {
                 Ok(r) => Ok(CoatCheckResult {
+                    prediction_id: r.prediction_id.clone(),
                     recommendation: r.recommendation.clone(),
                     reason: r.reason.clone(),
                     locations: r
@@ -265,6 +312,40 @@ mod tests {
         }
     }
 
+    #[derive(Clone)]
+    struct FakeFeedbackApi;
+
+    #[async_trait::async_trait]
+    impl FeedbackApiPort for FakeFeedbackApi {
+        async fn register_email(
+            &self,
+            _prediction_id: &str,
+            _email: &str,
+        ) -> Result<(), FeedbackApiError> {
+            Ok(())
+        }
+
+        async fn get_prediction(
+            &self,
+            prediction_id: &str,
+        ) -> Result<PredictionResponse, FeedbackApiError> {
+            Ok(PredictionResponse {
+                id: prediction_id.to_string(),
+                recommendation: "coat".into(),
+                reason: "test reason".into(),
+            })
+        }
+
+        async fn submit_feedback(
+            &self,
+            _prediction_id: &str,
+            _accurate: bool,
+            _comment: Option<&str>,
+        ) -> Result<(), FeedbackApiError> {
+            Ok(())
+        }
+    }
+
     fn empty_geocoding() -> FakeGeocoding {
         FakeGeocoding::with_results(vec![])
     }
@@ -272,8 +353,8 @@ mod tests {
     fn service(
         api: FakeCoatCheckApi,
         geo: FakeGeocoding,
-    ) -> WebService<FakeCoatCheckApi, FakeGeocoding> {
-        WebService::new(api, geo)
+    ) -> WebService<FakeCoatCheckApi, FakeGeocoding, FakeFeedbackApi> {
+        WebService::new(api, geo, FakeFeedbackApi)
     }
 
     fn london() -> LocationInput {
@@ -350,6 +431,7 @@ mod tests {
     async fn check_coat_no_label_uses_coords() {
         let api = FakeCoatCheckApi {
             result: Ok(CoatCheckResult {
+                prediction_id: Some("test-id".into()),
                 recommendation: "no".into(),
                 reason: "All clear.".into(),
                 locations: vec![CoatCheckLocationResult {

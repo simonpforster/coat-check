@@ -3,7 +3,7 @@ use tracing::info;
 
 use crate::ports::outbound::{
     CoatCheckApiError, CoatCheckApiPort, CoatCheckLocation, CoatCheckLocationResult,
-    CoatCheckResult,
+    CoatCheckResult, FeedbackApiError, FeedbackApiPort, PredictionResponse,
 };
 
 #[derive(Clone)]
@@ -74,6 +74,7 @@ impl CoatCheckApiPort for CoatCheckApiClient {
             .map_err(|e| CoatCheckApiError::Network(e.to_string()))?;
 
         Ok(CoatCheckResult {
+            prediction_id: api_resp.prediction_id,
             recommendation: api_resp.recommendation,
             reason: api_resp.reason,
             locations: api_resp
@@ -96,6 +97,88 @@ impl CoatCheckApiPort for CoatCheckApiClient {
     }
 }
 
+#[async_trait::async_trait]
+impl FeedbackApiPort for CoatCheckApiClient {
+    async fn register_email(
+        &self,
+        prediction_id: &str,
+        email: &str,
+    ) -> Result<(), FeedbackApiError> {
+        let url = format!("{}/feedback/register", self.api_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({
+                "prediction_id": prediction_id,
+                "email": email,
+            }))
+            .send()
+            .await
+            .map_err(|e| FeedbackApiError::Network(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(FeedbackApiError::Api(body));
+        }
+        Ok(())
+    }
+
+    async fn get_prediction(
+        &self,
+        prediction_id: &str,
+    ) -> Result<PredictionResponse, FeedbackApiError> {
+        let url = format!("{}/predictions/{}", self.api_url, prediction_id);
+        let resp = self
+            .http
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| FeedbackApiError::Network(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(FeedbackApiError::Api(body));
+        }
+
+        let data: ApiPredictionResponse = resp
+            .json()
+            .await
+            .map_err(|e| FeedbackApiError::Network(e.to_string()))?;
+
+        Ok(PredictionResponse {
+            id: data.id,
+            recommendation: data.recommendation,
+            reason: data.reason,
+        })
+    }
+
+    async fn submit_feedback(
+        &self,
+        prediction_id: &str,
+        accurate: bool,
+        comment: Option<&str>,
+    ) -> Result<(), FeedbackApiError> {
+        let url = format!("{}/feedback/submit", self.api_url);
+        let resp = self
+            .http
+            .post(&url)
+            .json(&serde_json::json!({
+                "prediction_id": prediction_id,
+                "accurate": accurate,
+                "comment": comment,
+            }))
+            .send()
+            .await
+            .map_err(|e| FeedbackApiError::Network(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(FeedbackApiError::Api(body));
+        }
+        Ok(())
+    }
+}
+
 // ── Private serde DTOs ──────────────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -112,9 +195,17 @@ struct ApiLocation {
 
 #[derive(Deserialize)]
 struct ApiResponse {
+    prediction_id: Option<String>,
     recommendation: String,
     reason: String,
     locations: Vec<ApiLocationResult>,
+}
+
+#[derive(Deserialize)]
+struct ApiPredictionResponse {
+    id: String,
+    recommendation: String,
+    reason: String,
 }
 
 #[derive(Deserialize)]
