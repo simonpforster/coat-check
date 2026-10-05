@@ -44,7 +44,7 @@ impl<W: WeatherPort + Clone> CoatCheckPort for CoatCheckService<W> {
         // Worst-case: Coat > RainJacket > No (Ord is derived on the enum)
         let overall = by_location
             .iter()
-            .map(|r| r.recommendation.clone())
+            .map(|r| r.recommendation)
             .max()
             .unwrap_or(CoatRecommendation::No);
 
@@ -142,6 +142,7 @@ mod tests {
     fn warm_dry(loc: Location) -> DailyForecast {
         DailyForecast {
             location: loc,
+            timezone: "Europe/London".into(),
             temp_max_celsius: 22.0,
             temp_min_celsius: 15.0,
             feels_like_min_celsius: 14.0,
@@ -155,6 +156,7 @@ mod tests {
     fn cold_dry(loc: Location) -> DailyForecast {
         DailyForecast {
             location: loc,
+            timezone: "Europe/London".into(),
             temp_max_celsius: 5.0,
             temp_min_celsius: 1.0,
             feels_like_min_celsius: -1.0,
@@ -168,6 +170,7 @@ mod tests {
     fn warm_rainy(loc: Location) -> DailyForecast {
         DailyForecast {
             location: loc,
+            timezone: "Europe/London".into(),
             temp_max_celsius: 22.0,
             temp_min_celsius: 15.0,
             feels_like_min_celsius: 14.0,

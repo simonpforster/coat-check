@@ -18,11 +18,12 @@ impl LogNotifier {
 impl NotificationSenderPort for LogNotifier {
     async fn send_feedback_request(
         &self,
-        to: &str,
+        _to: &str,
         prediction_id: Uuid,
+        _prediction_date: chrono::NaiveDate,
     ) -> Result<(), NotificationSendError> {
         let feedback_url = format!("{}/feedback?token={}", self.base_url, prediction_id);
-        info!(contact = %to, url = %feedback_url, "feedback notification ready");
+        info!(prediction_id = %prediction_id, url = %feedback_url, "feedback notification ready");
         Ok(())
     }
 }

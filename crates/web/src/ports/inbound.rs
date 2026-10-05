@@ -46,7 +46,10 @@ pub trait WebPort: Send + Sync {
     async fn submit_feedback(
         &self,
         prediction_id: &str,
-        accurate: bool,
+        brought: &str,
+        should_have_brought: &str,
         comment: Option<&str>,
     ) -> Result<(), WebPortError>;
+
+    async fn unsubscribe(&self, contact: &str) -> Result<(), WebPortError>;
 }

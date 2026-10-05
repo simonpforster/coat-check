@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coat Check — Feedback Detail</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;max-width:72rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;background:#fafaf9}
+    h1{font-size:1.5rem;margin-bottom:0.25rem}
+    .back{display:inline-block;margin-bottom:1.5rem;color:#2563eb;text-decoration:none;font-size:0.85rem}
+    .back:hover{text-decoration:underline}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+    .card{padding:1rem;border-radius:6px;background:#fff;border:1px solid #e7e5e4}
+    .card h3{font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;color:#888;margin-bottom:0.5rem}
+    .card p{font-size:0.95rem;line-height:1.5}
+    .match{color:#16a34a;font-weight:600}
+    .mismatch{color:#dc2626;font-weight:600}
+    .uuid{font-family:monospace;font-size:0.8rem;color:#888}
+    .json-card{grid-column:1/-1}
+    pre{background:#f5f5f4;padding:0.75rem;border-radius:4px;font-size:0.8rem;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+  </style>
+</head>
+<body>
+  <a class="back" href="/">&larr; Back to dashboard</a>
+  <h1>Feedback Detail</h1>
+  <p class="uuid" style="margin-bottom:1.5rem">{{ detail.prediction_id }}</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Prediction</h3>
+      <p><strong>{{ detail.recommendation }}</strong></p>
+      <p style="margin-top:0.25rem;font-size:0.85rem;color:#555">{{ detail.reason }}</p>
+    </div>
+    <div class="card">
+      <h3>Feedback</h3>
+      <p>Brought: <strong>{{ detail.feedback_brought }}</strong></p>
+      <p>Should have: <strong>{{ detail.feedback_should_have_brought }}</strong></p>
+      <p style="margin-top:0.5rem">{% if detail.matched %}<span class="match">Match</span>{% else %}<span class="mismatch">Mismatch</span>{% endif %}</p>
+    </div>
+    <div class="card">
+      <h3>Timestamps</h3>
+      <p>Predicted: {{ detail.prediction_at }}</p>
+      <p>Feedback: {{ detail.feedback_at }}</p>
+    </div>
+    <div class="card">
+      <h3>Comment</h3>
+      <p>{% if detail.feedback_comment.is_empty() %}<span style="color:#888">No comment</span>{% else %}{{ detail.feedback_comment }}{% endif %}</p>
+    </div>
+    <div class="card json-card">
+      <h3>Locations</h3>
+      <pre>{{ detail.locations_json }}</pre>
+    </div>
+    {% if let Some(weather) = detail.actual_weather_json %}
+    <div class="card json-card">
+      <h3>Actual Weather</h3>
+      <pre>{{ weather }}</pre>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -110,7 +110,7 @@ impl FeedbackApiPort for CoatCheckApiClient {
             .post(&url)
             .json(&serde_json::json!({
                 "prediction_id": prediction_id,
-                "email": email,
+                "contact": email,
             }))
             .send()
             .await
@@ -146,7 +146,6 @@ impl FeedbackApiPort for CoatCheckApiClient {
             .map_err(|e| FeedbackApiError::Network(e.to_string()))?;
 
         Ok(PredictionResponse {
-            id: data.id,
             recommendation: data.recommendation,
             reason: data.reason,
         })
@@ -155,7 +154,8 @@ impl FeedbackApiPort for CoatCheckApiClient {
     async fn submit_feedback(
         &self,
         prediction_id: &str,
-        accurate: bool,
+        brought: &str,
+        should_have_brought: &str,
         comment: Option<&str>,
     ) -> Result<(), FeedbackApiError> {
         let url = format!("{}/feedback/submit", self.api_url);
@@ -164,9 +164,30 @@ impl FeedbackApiPort for CoatCheckApiClient {
             .post(&url)
             .json(&serde_json::json!({
                 "prediction_id": prediction_id,
-                "accurate": accurate,
+                "brought": brought,
+                "should_have_brought": should_have_brought,
                 "comment": comment,
             }))
+            .send()
+            .await
+            .map_err(|e| FeedbackApiError::Network(e.to_string()))?;
+
+        if !resp.status().is_success() {
+            let body = resp.text().await.unwrap_or_default();
+            return Err(FeedbackApiError::Api(body));
+        }
+        Ok(())
+    }
+
+    async fn unsubscribe(&self, contact: &str) -> Result<(), FeedbackApiError> {
+        let url = format!(
+            "{}/feedback/unsubscribe?contact={}",
+            self.api_url,
+            urlencoding::encode(contact)
+        );
+        let resp = self
+            .http
+            .post(&url)
             .send()
             .await
             .map_err(|e| FeedbackApiError::Network(e.to_string()))?;
@@ -203,7 +224,6 @@ struct ApiResponse {
 
 #[derive(Deserialize)]
 struct ApiPredictionResponse {
-    id: String,
     recommendation: String,
     reason: String,
 }

@@ -1,0 +1,22 @@
+services:
+  weather-stub:
+    image: nginx:alpine
+    volumes:
+      - ./test/stubs/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost/v1/forecast?latitude=0&longitude=0 || exit 1"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  api:
+    environment:
+      - WEATHER_API_URL=http://weather-stub
+      - FEEDBACK_DELAY_MINUTES=0
+    depends_on:
+      weather-stub:
+        condition: service_healthy
+
+  web:
+    environment:
+      - GEOCODING_API_URL=http://weather-stub/v1/search

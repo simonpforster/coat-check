@@ -1,10 +1,10 @@
 [package]
-name = "coat-check"
+name = "coat-check-api"
 version = "0.4.0"
 edition = "2021"
 
 [[bin]]
-name = "coat-check"
+name = "coat-check-api"
 path = "src/main.rs"
 
 [dependencies]
@@ -27,6 +27,8 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 lettre = { version = "0.11", default-features = false, features = ["tokio1-rustls-tls", "smtp-transport", "builder"] }
 email_address = "0.2"
+urlencoding = "2"
+coat-check-common = { path = "../common" }
 
 [dev-dependencies]
 axum-test = "21"

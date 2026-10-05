@@ -1,0 +1,10 @@
+Hi!
+
+Earlier today you used Coat Check for a weather recommendation. Was it accurate?
+
+We'd love to hear how it went — it only takes a moment.
+
+Submit feedback: {{feedback_url}}
+
+Thanks for helping us improve!
+— Simon

@@ -32,8 +32,6 @@ pub enum FeedbackError {
     InvalidContact,
     #[error("feedback already submitted for this prediction")]
     AlreadyRated,
-    #[error("feedback link has expired")]
-    LinkExpired,
 }
 
 #[async_trait::async_trait]
@@ -51,7 +49,10 @@ pub trait FeedbackPort: Send + Sync {
     async fn submit_feedback(
         &self,
         prediction_id: Uuid,
-        accurate: bool,
+        brought: &str,
+        should_have_brought: &str,
         comment: Option<String>,
     ) -> Result<(), FeedbackError>;
+
+    async fn unsubscribe(&self, contact: &str) -> Result<(), FeedbackError>;
 }

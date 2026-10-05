@@ -5,7 +5,7 @@ mod ports;
 
 use adapters::outbound::{
     email::SmtpEmailSender, log_notifier::LogNotifier, open_meteo::OpenMeteoClient,
-    postgres::PgStore,
+    postgres::PgStore, resend::ResendEmailSender,
 };
 use application::{coat_check_service::CoatCheckService, feedback_service::FeedbackService};
 use sqlx::postgres::PgPoolOptions;
@@ -43,12 +43,17 @@ impl FeedbackPort for NoopFeedback {
     async fn submit_feedback(
         &self,
         _prediction_id: uuid::Uuid,
-        _accurate: bool,
+        _brought: &str,
+        _should_have_brought: &str,
         _comment: Option<String>,
     ) -> Result<(), FeedbackError> {
         Err(FeedbackError::Database(
             "feedback not configured".to_string(),
         ))
+    }
+
+    async fn unsubscribe(&self, _contact: &str) -> Result<(), FeedbackError> {
+        Ok(())
     }
 }
 
@@ -90,11 +95,20 @@ async fn main() {
 
         // Background notification worker
         let base_url = std::env::var("BASE_URL").unwrap_or_else(|_| "http://localhost:3000".into());
-        let smtp_host = std::env::var("SMTP_HOST").ok();
-        let from_email =
-            std::env::var("FROM_EMAIL").unwrap_or_else(|_| "noreply@coatcheck.app".into());
+        let resend_api_key = std::env::var("RESEND_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty());
+        let smtp_host = std::env::var("SMTP_HOST").ok().filter(|s| !s.is_empty());
+        let from_email = std::env::var("FROM_EMAIL")
+            .unwrap_or_else(|_| "Simon from Coat Check <simon@coat-check.org>".into());
 
-        if let Some(host) = smtp_host {
+        let api_url = std::env::var("API_URL").unwrap_or_else(|_| "http://localhost:8080".into());
+
+        if let Some(api_key) = resend_api_key {
+            let sender = ResendEmailSender::new(api_key, from_email, base_url, api_url);
+            tokio::spawn(application::notification_worker::run(pg_store, sender));
+            tracing::info!("notification worker started (Resend)");
+        } else if let Some(host) = smtp_host {
             match SmtpEmailSender::new(&host, &from_email, base_url) {
                 Ok(sender) => {
                     tokio::spawn(application::notification_worker::run(pg_store, sender));
@@ -107,7 +121,7 @@ async fn main() {
         } else {
             let notifier = LogNotifier::new(base_url);
             tokio::spawn(application::notification_worker::run(pg_store, notifier));
-            tracing::info!("notification worker started (log-only, no SMTP)");
+            tracing::info!("notification worker started (log-only)");
         }
 
         tracing::info!("feedback enabled (Postgres connected)");
@@ -147,4 +161,54 @@ async fn shutdown_signal() {
     #[cfg(not(unix))]
     ctrl_c.await.ok();
     tracing::info!("shutdown signal received, draining connections");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn noop_save_prediction_returns_nil_uuid() {
+        let noop = NoopFeedback;
+        let result = noop
+            .save_prediction(&CoatDecision {
+                overall: coat_check_common::Recommendation::No,
+                by_location: vec![],
+                overall_reason: "test".into(),
+            })
+            .await;
+        assert_eq!(result.unwrap(), uuid::Uuid::nil());
+    }
+
+    #[tokio::test]
+    async fn noop_register_contact_returns_error() {
+        let noop = NoopFeedback;
+        let result = noop
+            .register_contact(uuid::Uuid::new_v4(), "test@example.com")
+            .await;
+        assert!(matches!(result, Err(FeedbackError::Database(_))));
+    }
+
+    #[tokio::test]
+    async fn noop_get_prediction_returns_not_found() {
+        let noop = NoopFeedback;
+        let result = noop.get_prediction(uuid::Uuid::new_v4()).await;
+        assert!(matches!(result, Err(FeedbackError::PredictionNotFound)));
+    }
+
+    #[tokio::test]
+    async fn noop_submit_feedback_returns_error() {
+        let noop = NoopFeedback;
+        let result = noop
+            .submit_feedback(uuid::Uuid::new_v4(), "coat", "coat", None)
+            .await;
+        assert!(matches!(result, Err(FeedbackError::Database(_))));
+    }
+
+    #[tokio::test]
+    async fn noop_unsubscribe_succeeds() {
+        let noop = NoopFeedback;
+        let result = noop.unsubscribe("test@example.com").await;
+        assert!(result.is_ok());
+    }
 }

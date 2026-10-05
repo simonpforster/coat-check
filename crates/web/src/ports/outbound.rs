@@ -61,8 +61,6 @@ pub enum FeedbackApiError {
 }
 
 pub struct PredictionResponse {
-    #[allow(dead_code)]
-    pub id: String,
     pub recommendation: String,
     pub reason: String,
 }
@@ -83,9 +81,12 @@ pub trait FeedbackApiPort: Send + Sync {
     async fn submit_feedback(
         &self,
         prediction_id: &str,
-        accurate: bool,
+        brought: &str,
+        should_have_brought: &str,
         comment: Option<&str>,
     ) -> Result<(), FeedbackApiError>;
+
+    async fn unsubscribe(&self, contact: &str) -> Result<(), FeedbackApiError>;
 }
 
 // ── Geocoding port ──────────────────────────────────────────────────────────

@@ -15,12 +15,14 @@ pub struct OpenMeteoClient {
 
 impl OpenMeteoClient {
     pub fn new() -> Self {
+        let base_url = std::env::var("WEATHER_API_URL")
+            .unwrap_or_else(|_| "https://api.open-meteo.com".to_string());
         Self {
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
                 .build()
                 .expect("failed to build HTTP client"),
-            base_url: "https://api.open-meteo.com".to_string(),
+            base_url,
         }
     }
 }
@@ -139,6 +141,7 @@ impl WeatherPort for OpenMeteoClient {
 
 #[derive(Debug, Deserialize)]
 struct OpenMeteoResponse {
+    timezone: String,
     daily: OpenMeteoDailyData,
 }
 
@@ -166,6 +169,7 @@ fn to_domain_forecast(
     let d = &resp.daily;
     Ok(DailyForecast {
         location: location.clone(),
+        timezone: resp.timezone,
         temp_max_celsius: first_f64(&d.temperature_2m_max, "temperature_2m_max")?,
         temp_min_celsius: first_f64(&d.temperature_2m_min, "temperature_2m_min")?,
         feels_like_min_celsius: first_f64(&d.apparent_temperature_min, "apparent_temperature_min")?,
@@ -217,7 +221,7 @@ mod tests {
 
     #[test]
     fn missing_field_returns_parse_error() {
-        let bad = r#"{"daily": {"temperature_2m_max": [], "temperature_2m_min": [7.1],
+        let bad = r#"{"timezone": "Europe/London", "daily": {"temperature_2m_max": [], "temperature_2m_min": [7.1],
             "apparent_temperature_max": [11.0], "apparent_temperature_min": [8.3],
             "precipitation_sum": [0.0], "wind_speed_10m_max": [10.0],
             "snowfall_sum": [0.0], "weather_code": [0]}}"#;

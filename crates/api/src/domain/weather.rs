@@ -3,6 +3,8 @@ use crate::domain::location::Location;
 #[derive(Debug, Clone)]
 pub struct DailyForecast {
     pub location: Location,
+    /// IANA timezone identifier (e.g. "Europe/London")
+    pub timezone: String,
     pub temp_max_celsius: f64,
     pub temp_min_celsius: f64,
     pub feels_like_min_celsius: f64,

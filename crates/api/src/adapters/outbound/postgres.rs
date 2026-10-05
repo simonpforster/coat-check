@@ -48,7 +48,8 @@ impl FeedbackStorePort for PgStore {
 
     async fn get_prediction(&self, id: Uuid) -> Result<Prediction, FeedbackStoreError> {
         let row = sqlx::query_as::<_, PredictionRow>(
-            "SELECT id, recommendation, reason, locations_json, created_at FROM predictions WHERE id = $1",
+            "SELECT id, recommendation, reason, locations_json, created_at \
+             FROM predictions WHERE id = $1 AND expires_at > now()",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -97,6 +98,16 @@ impl FeedbackStorePort for PgStore {
     async fn fetch_ready_notifications(
         &self,
     ) -> Result<Vec<QueuedNotification>, FeedbackStoreError> {
+        // Reset notifications stuck in 'sending' for more than 5 minutes (worker crash recovery)
+        sqlx::query(
+            "UPDATE email_queue SET status = 'pending' \
+             WHERE status = 'sending' \
+             AND send_after < now() - interval '5 minutes'",
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
+
         let rows = sqlx::query_as::<_, NotificationQueueRow>(
             "UPDATE email_queue SET status = 'sending' \
              WHERE id IN ( \
@@ -131,10 +142,42 @@ impl FeedbackStorePort for PgStore {
         Ok(())
     }
 
-    async fn mark_notification_sent(&self, id: Uuid) -> Result<(), FeedbackStoreError> {
-        sqlx::query("UPDATE email_queue SET status = 'sent', sent_at = now() WHERE id = $1")
-            .bind(id)
+    async fn cancel_pending_notifications_for_contact(
+        &self,
+        contact: &str,
+    ) -> Result<(), FeedbackStoreError> {
+        sqlx::query("DELETE FROM email_queue WHERE email = $1 AND status = 'pending'")
+            .bind(contact)
             .execute(&self.pool)
+            .await
+            .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    async fn mark_notification_sent(&self, id: Uuid) -> Result<(), FeedbackStoreError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
+
+        sqlx::query(
+            "UPDATE predictions SET expires_at = now() + interval '7 days' \
+             WHERE id = (SELECT prediction_id FROM email_queue WHERE id = $1)",
+        )
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
+
+        sqlx::query("DELETE FROM email_queue WHERE id = $1")
+            .bind(id)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
+
+        tx.commit()
             .await
             .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
 
@@ -148,10 +191,10 @@ impl FeedbackStorePort for PgStore {
     ) -> Result<(), FeedbackStoreError> {
         sqlx::query(
             "UPDATE email_queue SET \
-                attempts = attempts + 1, \
-                last_error = $2, \
-                status = CASE WHEN attempts + 1 >= $3 THEN 'failed' ELSE 'pending' END, \
-                send_after = now() + make_interval(mins => power(2, attempts)::int) \
+                 attempts = attempts + 1, \
+                 last_error = $2, \
+                 status = CASE WHEN attempts + 1 >= $3 THEN 'failed' ELSE 'pending' END, \
+                 send_after = now() + make_interval(mins => power(2, attempts + 1)::int) \
              WHERE id = $1",
         )
         .bind(id)
@@ -162,21 +205,6 @@ impl FeedbackStorePort for PgStore {
         .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
 
         Ok(())
-    }
-
-    async fn get_notification_sent_at(
-        &self,
-        prediction_id: Uuid,
-    ) -> Result<DateTime<Utc>, FeedbackStoreError> {
-        let row: Option<(DateTime<Utc>,)> = sqlx::query_as(
-            "SELECT sent_at FROM email_queue WHERE prediction_id = $1 AND status = 'sent' AND sent_at IS NOT NULL LIMIT 1",
-        )
-        .bind(prediction_id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
-
-        row.map(|r| r.0).ok_or(FeedbackStoreError::NotFound)
     }
 
     async fn record_feedback(
@@ -194,14 +222,15 @@ impl FeedbackStorePort for PgStore {
             .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
 
         sqlx::query(
-            "INSERT INTO analytics (prediction_id, recommendation, reason, locations_json, prediction_at, feedback_accurate, feedback_comment, actual_weather_json) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            "INSERT INTO analytics (prediction_id, recommendation, reason, locations_json, prediction_at, feedback_brought, feedback_should_have_brought, feedback_comment, actual_weather_json) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         )
         .bind(prediction.id)
         .bind(&prediction.recommendation)
         .bind(&prediction.reason)
         .bind(&locations_json)
         .bind(prediction.created_at)
-        .bind(feedback.accurate)
+        .bind(&feedback.brought)
+        .bind(&feedback.should_have_brought)
         .bind(feedback.comment.as_deref())
         .bind(&actual_json)
         .execute(&self.pool)

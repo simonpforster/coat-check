@@ -68,9 +68,40 @@
   </form>
   <div id="result"></div>
   </main>
+  <footer style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #e5e5e5;font-size:0.8rem;color:#888">
+    <p>Your email is only stored until the feedback request is sent, then permanently deleted.</p>
+    <details style="margin-top:0.75rem">
+      <summary style="cursor:pointer;color:#2563eb">Unsubscribe from pending emails</summary>
+      <form hx-post="/unsubscribe" hx-target="#unsub-result" hx-swap="innerHTML" style="margin-top:0.5rem;display:flex;gap:0.5rem;align-items:center">
+        <input type="email" name="email" placeholder="your@email.com" required style="padding:0.35rem 0.5rem;border:1px solid #ccc;border-radius:4px;font-size:0.85rem;flex:1">
+        <button type="submit" style="padding:0.35rem 0.8rem;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.85rem">Unsubscribe</button>
+      </form>
+      <div id="unsub-result"></div>
+    </details>
+  </footer>
   {% if let Some(id) = ga_id %}
-  <script async src="https://www.googletagmanager.com/gtag/js?id={{ id }}"></script>
-  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ id }}');</script>
+  <script>
+    function loadGA(){
+      if(document.getElementById('ga-script'))return;
+      var s=document.createElement('script');s.id='ga-script';s.async=true;
+      s.src='https://www.googletagmanager.com/gtag/js?id={{ id }}';
+      document.head.appendChild(s);
+      window.dataLayer=window.dataLayer||[];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js',new Date());gtag('config','{{ id }}');
+    }
+    function acceptCookies(){localStorage.setItem('cc_consent','1');loadGA();document.getElementById('cookie-banner').remove();}
+    function declineCookies(){localStorage.setItem('cc_consent','0');document.getElementById('cookie-banner').remove();}
+    if(localStorage.getItem('cc_consent')==='1')loadGA();
+    else if(localStorage.getItem('cc_consent')!=='0'){
+      document.addEventListener('DOMContentLoaded',function(){
+        var b=document.createElement('div');b.id='cookie-banner';
+        b.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;color:#fff;padding:1rem;display:flex;align-items:center;justify-content:center;gap:1rem;font-size:0.85rem;z-index:9999';
+        b.innerHTML='We use cookies for analytics. <button onclick="acceptCookies()" style="padding:0.3rem 0.8rem;border:none;border-radius:4px;background:#2563eb;color:#fff;cursor:pointer">Accept</button><button onclick="declineCookies()" style="padding:0.3rem 0.8rem;border:1px solid #555;border-radius:4px;background:transparent;color:#fff;cursor:pointer">Decline</button>';
+        document.body.appendChild(b);
+      });
+    }
+  </script>
   {% endif %}
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0/dist/htmx.min.js" integrity="sha384-BvJpBiO8Kh31EqtJe5DRIeWrHWnCGkwytKs9NKFi86Hhw96dEqdEMzZDeK9iEGTc" crossorigin="anonymous"></script>
   <script>

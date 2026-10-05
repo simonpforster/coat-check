@@ -19,7 +19,7 @@ async fn process_batch<F: FeedbackStorePort, N: NotificationSenderPort>(store: &
     match store.fetch_ready_notifications().await {
         Ok(notifications) => {
             for notification in notifications {
-                match store.get_prediction(notification.prediction_id).await {
+                let prediction = match store.get_prediction(notification.prediction_id).await {
                     Err(FeedbackStoreError::NotFound) => {
                         info!(id = %notification.id, prediction_id = %notification.prediction_id, "prediction deleted, removing orphaned notification");
                         if let Err(e) = store.delete_notification(notification.id).await {
@@ -31,22 +31,28 @@ async fn process_batch<F: FeedbackStorePort, N: NotificationSenderPort>(store: &
                         warn!(error = %e, id = %notification.id, "failed to verify prediction, skipping notification");
                         continue;
                     }
-                    Ok(_) => {}
-                }
+                    Ok(p) => p,
+                };
+
+                let prediction_date = prediction.created_at.date_naive();
 
                 match sender
-                    .send_feedback_request(&notification.contact, notification.prediction_id)
+                    .send_feedback_request(
+                        &notification.contact,
+                        notification.prediction_id,
+                        prediction_date,
+                    )
                     .await
                 {
                     Ok(()) => {
                         if let Err(e) = store.mark_notification_sent(notification.id).await {
                             warn!(error = %e, id = %notification.id, "failed to mark notification as sent");
                         } else {
-                            info!(contact = %notification.contact, "feedback notification sent");
+                            info!(id = %notification.id, "feedback notification sent");
                         }
                     }
                     Err(e) => {
-                        warn!(error = %e, contact = %notification.contact, "failed to send feedback notification");
+                        warn!(error = %e, id = %notification.id, "failed to send feedback notification");
                         if let Err(mark_err) = store
                             .mark_notification_failed(notification.id, &e.to_string())
                             .await
@@ -158,18 +164,18 @@ mod tests {
             Ok(())
         }
 
-        async fn get_notification_sent_at(
-            &self,
-            _prediction_id: Uuid,
-        ) -> Result<DateTime<Utc>, FeedbackStoreError> {
-            unimplemented!()
-        }
-
         async fn record_feedback(
             &self,
             _prediction: &Prediction,
             _feedback: &Feedback,
             _actual_weather: Option<&[PredictionLocation]>,
+        ) -> Result<(), FeedbackStoreError> {
+            unimplemented!()
+        }
+
+        async fn cancel_pending_notifications_for_contact(
+            &self,
+            _contact: &str,
         ) -> Result<(), FeedbackStoreError> {
             unimplemented!()
         }
@@ -184,6 +190,7 @@ mod tests {
             &self,
             _to: &str,
             _prediction_id: Uuid,
+            _prediction_date: chrono::NaiveDate,
         ) -> Result<(), NotificationSendError> {
             Ok(())
         }
@@ -198,6 +205,7 @@ mod tests {
             &self,
             _to: &str,
             _prediction_id: Uuid,
+            _prediction_date: chrono::NaiveDate,
         ) -> Result<(), NotificationSendError> {
             Err(NotificationSendError::SendFailed("smtp timeout".into()))
         }

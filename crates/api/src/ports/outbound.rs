@@ -1,8 +1,6 @@
-use chrono::{DateTime, Utc};
+use chrono::{NaiveDate, Utc};
 use thiserror::Error;
 use uuid::Uuid;
-
-use chrono::NaiveDate;
 
 use crate::domain::{
     location::Location,
@@ -70,7 +68,7 @@ pub trait FeedbackStorePort: Send + Sync {
         &self,
         prediction_id: Uuid,
         contact: &str,
-        send_after: DateTime<Utc>,
+        send_after: chrono::DateTime<Utc>,
     ) -> Result<(), FeedbackStoreError>;
 
     async fn fetch_ready_notifications(
@@ -79,6 +77,11 @@ pub trait FeedbackStorePort: Send + Sync {
 
     async fn delete_notification(&self, id: Uuid) -> Result<(), FeedbackStoreError>;
 
+    async fn cancel_pending_notifications_for_contact(
+        &self,
+        contact: &str,
+    ) -> Result<(), FeedbackStoreError>;
+
     async fn mark_notification_sent(&self, id: Uuid) -> Result<(), FeedbackStoreError>;
 
     async fn mark_notification_failed(
@@ -86,11 +89,6 @@ pub trait FeedbackStorePort: Send + Sync {
         id: Uuid,
         error: &str,
     ) -> Result<(), FeedbackStoreError>;
-
-    async fn get_notification_sent_at(
-        &self,
-        prediction_id: Uuid,
-    ) -> Result<DateTime<Utc>, FeedbackStoreError>;
 
     async fn record_feedback(
         &self,
@@ -114,5 +112,6 @@ pub trait NotificationSenderPort: Send + Sync {
         &self,
         to: &str,
         prediction_id: Uuid,
+        prediction_date: chrono::NaiveDate,
     ) -> Result<(), NotificationSendError>;
 }

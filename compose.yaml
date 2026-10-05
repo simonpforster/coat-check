@@ -8,7 +8,12 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coatcheck"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
@@ -20,10 +25,12 @@ services:
       - RUST_LOG=info
       - DATABASE_URL=postgres://coatcheck:coatcheck@db:5432/coatcheck
       - BASE_URL=${BASE_URL:-http://localhost:3000}
-      - SMTP_HOST=${SMTP_HOST:-}
-      - FROM_EMAIL=${FROM_EMAIL:-noreply@coatcheck.app}
+      - RESEND_API_KEY
+      - FROM_EMAIL=${FROM_EMAIL:-Simon from Coat Check <simon@coat-check.org>}
+      - FEEDBACK_DELAY_MINUTES=1
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   web:
     build:
@@ -34,10 +41,23 @@ services:
     environment:
       - API_URL=http://api:8080
       - BASE_URL=${BASE_URL:-}
-      - GA_ID=${GA_ID:-}
+      - GA_ID
       - RUST_LOG=info
     depends_on:
       - api
+
+  backoffice:
+    build:
+      context: .
+      dockerfile: crates/backoffice/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - DATABASE_URL=postgres://coatcheck:coatcheck@db:5432/coatcheck
+      - RUST_LOG=info
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:

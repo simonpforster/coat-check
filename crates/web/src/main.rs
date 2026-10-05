@@ -22,10 +22,9 @@ async fn main() {
     let base_url = std::env::var("BASE_URL").ok();
     let ga_id = std::env::var("GA_ID").ok();
 
-    let coat_check_client = CoatCheckApiClient::new(api_url.clone());
+    let api_client = CoatCheckApiClient::new(api_url.clone());
     let geocoding_client = OpenMeteoGeocodingClient::new();
-    let feedback_client = CoatCheckApiClient::new(api_url.clone());
-    let service = WebService::new(coat_check_client, geocoding_client, feedback_client);
+    let service = WebService::new(api_client.clone(), geocoding_client, api_client);
     let config = WebConfig { base_url, ga_id };
     let app = adapters::inbound::http::router(service, config);
 

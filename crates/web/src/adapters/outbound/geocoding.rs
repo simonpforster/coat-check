@@ -10,12 +10,14 @@ pub struct OpenMeteoGeocodingClient {
 
 impl OpenMeteoGeocodingClient {
     pub fn new() -> Self {
+        let base_url = std::env::var("GEOCODING_API_URL")
+            .unwrap_or_else(|_| "https://geocoding-api.open-meteo.com/v1/search".into());
         Self {
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
                 .build()
                 .expect("failed to build HTTP client"),
-            base_url: "https://geocoding-api.open-meteo.com/v1/search".into(),
+            base_url,
         }
     }
 }

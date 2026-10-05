@@ -11,6 +11,12 @@
       "component": "coat-check-web",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true
+    },
+    "crates/backoffice": {
+      "release-type": "rust",
+      "component": "coat-check-backoffice",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true
     }
   }
 }

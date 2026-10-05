@@ -21,6 +21,8 @@ jobs:
       api_version: ${{ steps.release.outputs['crates/api--version'] }}
       web_release_created: ${{ steps.release.outputs['crates/web--release_created'] }}
       web_version: ${{ steps.release.outputs['crates/web--version'] }}
+      backoffice_release_created: ${{ steps.release.outputs['crates/backoffice--release_created'] }}
+      backoffice_version: ${{ steps.release.outputs['crates/backoffice--version'] }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -72,3 +74,26 @@ jobs:
           tags: |
             ghcr.io/simonpforster/coat-check-web:${{ needs.release.outputs.web_version }}
             ghcr.io/simonpforster/coat-check-web:latest
+
+  docker-backoffice:
+    name: Push Backoffice Image
+    needs: release
+    if: needs.release.outputs.backoffice_release_created == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: crates/backoffice/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/simonpforster/coat-check-backoffice:${{ needs.release.outputs.backoffice_version }}
+            ghcr.io/simonpforster/coat-check-backoffice:latest
