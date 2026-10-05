@@ -13,6 +13,8 @@ services:
     environment:
       - WEATHER_API_URL=http://weather-stub
       - FEEDBACK_DELAY_MINUTES=0
+      - RESEND_API_KEY=
+      - SMTP_HOST=
     depends_on:
       weather-stub:
         condition: service_healthy
