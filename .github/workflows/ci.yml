@@ -60,7 +60,7 @@ jobs:
 
   integration:
     name: Integration Test
-    needs: [clippy, test, docker-api, docker-web, docker-backoffice]
+    needs: [clippy, test]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -134,36 +134,3 @@ jobs:
       - name: Logs on failure
         if: failure()
         run: docker compose -f compose.yaml -f compose.test.yaml logs
-
-  docker-api:
-    name: Docker Build (API)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: crates/api/Dockerfile
-          push: false
-
-  docker-web:
-    name: Docker Build (Web)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: crates/web/Dockerfile
-          push: false
-
-  docker-backoffice:
-    name: Docker Build (Backoffice)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: crates/backoffice/Dockerfile
-          push: false
