@@ -9,3 +9,5 @@ RUN apk add --no-cache --virtual .build-deps \
     && make clean && make && make install \
     && cd / && rm -rf /tmp/pg_ttl_index \
     && apk del .build-deps
+
+COPY init-ttl-worker.sh /docker-entrypoint-initdb.d/
