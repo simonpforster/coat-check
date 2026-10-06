@@ -28,11 +28,12 @@
     .pagination .disabled{pointer-events:none;opacity:0.4}
     .pagination .current{font-weight:600}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0/dist/htmx.min.js" integrity="sha384-BvJpBiO8Kh31EqtJe5DRIeWrHWnCGkwytKs9NKFi86Hhw96dEqdEMzZDeK9iEGTc" crossorigin="anonymous"></script>
 </head>
 <body>
   <h1>Coat Check — Feedback Dashboard</h1>
 
-  <div class="stats">
+  <div class="stats" hx-get="/stats" hx-trigger="every 30s" hx-swap="outerHTML">
     <div class="stat">
       <div class="stat-value">{{ stats.total }}</div>
       <div class="stat-label">Total feedback</div>
@@ -45,40 +46,46 @@
       <div class="stat-value">{{ stats.match_rate }}</div>
       <div class="stat-label">Match rate</div>
     </div>
+    <div class="stat" style="background:#eff6ff;border-color:#bfdbfe">
+      <div class="stat-value">{{ stats.queue_pending }}</div>
+      <div class="stat-label">Notifications queued</div>
+    </div>
   </div>
 
+  <div id="feedback-table" hx-get="/table?page={{ pagination.page }}" hx-trigger="every 30s" hx-swap="outerHTML">
   {% if entries.is_empty() %}
-  <div class="empty">No feedback submitted yet.</div>
+    <div class="empty">No feedback submitted yet.</div>
   {% else %}
-  <table>
-    <thead>
-      <tr>
-        <th>Predicted</th>
-        <th>Brought</th>
-        <th>Should have</th>
-        <th>Match</th>
-        <th>Comment</th>
-        <th>Predicted at</th>
-        <th>Feedback at</th>
-        <th>Prediction ID</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for entry in entries %}
-      <tr data-href="/feedback/{{ entry.prediction_id }}">
-        <td>{{ entry.recommendation }}</td>
-        <td>{{ entry.feedback_brought }}</td>
-        <td>{{ entry.feedback_should_have_brought }}</td>
-        <td>{% if entry.matched %}<span class="match">Yes</span>{% else %}<span class="mismatch">No</span>{% endif %}</td>
-        <td class="comment" title="{{ entry.feedback_comment }}">{{ entry.feedback_comment }}</td>
-        <td>{{ entry.prediction_at }}</td>
-        <td>{{ entry.feedback_at }}</td>
-        <td class="uuid">{{ entry.prediction_id }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    <table>
+      <thead>
+        <tr>
+          <th>Predicted</th>
+          <th>Brought</th>
+          <th>Should have</th>
+          <th>Match</th>
+          <th>Comment</th>
+          <th>Predicted at</th>
+          <th>Feedback at</th>
+          <th>Prediction ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr data-href="/feedback/{{ entry.prediction_id }}">
+          <td>{{ entry.recommendation }}</td>
+          <td>{{ entry.feedback_brought }}</td>
+          <td>{{ entry.feedback_should_have_brought }}</td>
+          <td>{% if entry.matched %}<span class="match">Yes</span>{% else %}<span class="mismatch">No</span>{% endif %}</td>
+          <td class="comment" title="{{ entry.feedback_comment }}">{{ entry.feedback_comment }}</td>
+          <td>{{ entry.prediction_at }}</td>
+          <td>{{ entry.feedback_at }}</td>
+          <td class="uuid">{{ entry.prediction_id }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   {% endif %}
+  </div>
 
   {% if pagination.total_pages > 1 %}
   <nav class="pagination">
@@ -88,10 +95,16 @@
   </nav>
   {% endif %}
   <script>
-    document.querySelectorAll('tr[data-href]').forEach(function(row) {
-      row.addEventListener('click', function() {
-        window.location = this.dataset.href;
+    function bindRowClicks(root) {
+      root.querySelectorAll('tr[data-href]').forEach(function(row) {
+        row.addEventListener('click', function() {
+          window.location = this.dataset.href;
+        });
       });
+    }
+    bindRowClicks(document);
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+      bindRowClicks(e.detail.target);
     });
   </script>
 </body>

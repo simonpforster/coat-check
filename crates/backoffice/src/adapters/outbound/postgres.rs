@@ -42,6 +42,17 @@ impl PgFeedbackStore {
 
 #[async_trait::async_trait]
 impl FeedbackStorePort for PgFeedbackStore {
+    async fn get_pending_notification_count(&self) -> Result<i64, FeedbackStoreError> {
+        let (count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM email_queue WHERE status IN ('pending', 'sending')",
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
+
+        Ok(count)
+    }
+
     async fn get_totals(&self) -> Result<FeedbackTotals, FeedbackStoreError> {
         let (total, matched): (i64, i64) = sqlx::query_as(
             "SELECT COUNT(*), \

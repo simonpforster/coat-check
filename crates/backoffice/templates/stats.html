@@ -1,0 +1,18 @@
+<div class="stats" hx-get="/stats" hx-trigger="every 30s" hx-swap="outerHTML">
+  <div class="stat">
+    <div class="stat-value">{{ stats.total }}</div>
+    <div class="stat-label">Total feedback</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ stats.matched }}</div>
+    <div class="stat-label">Brought = should have</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value">{{ stats.match_rate }}</div>
+    <div class="stat-label">Match rate</div>
+  </div>
+  <div class="stat" style="background:#eff6ff;border-color:#bfdbfe">
+    <div class="stat-value">{{ stats.queue_pending }}</div>
+    <div class="stat-label">Notifications queued</div>
+  </div>
+</div>
