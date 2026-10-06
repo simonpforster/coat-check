@@ -1,0 +1,34 @@
+<div id="feedback-table" hx-get="/table?page={{ page }}" hx-trigger="every 30s" hx-swap="outerHTML">
+{% if entries.is_empty() %}
+  <div class="empty">No feedback submitted yet.</div>
+{% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Predicted</th>
+        <th>Brought</th>
+        <th>Should have</th>
+        <th>Match</th>
+        <th>Comment</th>
+        <th>Predicted at</th>
+        <th>Feedback at</th>
+        <th>Prediction ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr data-href="/feedback/{{ entry.prediction_id }}">
+        <td>{{ entry.recommendation }}</td>
+        <td>{{ entry.feedback_brought }}</td>
+        <td>{{ entry.feedback_should_have_brought }}</td>
+        <td>{% if entry.matched %}<span class="match">Yes</span>{% else %}<span class="mismatch">No</span>{% endif %}</td>
+        <td class="comment" title="{{ entry.feedback_comment }}">{{ entry.feedback_comment }}</td>
+        <td>{{ entry.prediction_at }}</td>
+        <td>{{ entry.feedback_at }}</td>
+        <td class="uuid">{{ entry.prediction_id }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endif %}
+</div>

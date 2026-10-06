@@ -29,6 +29,7 @@ pub struct FeedbackStats {
     pub total: i64,
     pub matched: i64,
     pub match_rate: String,
+    pub queue_pending: i64,
 }
 
 pub struct FeedbackPage {
