@@ -17,6 +17,12 @@
       "component": "coat-check-backoffice",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true
+    },
+    "docker/db": {
+      "release-type": "simple",
+      "component": "coat-check-db",
+      "changelog-path": "CHANGELOG.md",
+      "bump-minor-pre-major": true
     }
   }
 }

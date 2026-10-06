@@ -18,9 +18,9 @@ fi
 
 echo "==> Restarting..."
 if [ ${#services[@]} -eq 0 ]; then
-    docker compose up -d --force-recreate
+    docker compose up -d --force-recreate --wait
 else
-    docker compose up -d --force-recreate "${services[@]}"
+    docker compose up -d --force-recreate --wait "${services[@]}"
 fi
 
 echo "==> Running containers:"
