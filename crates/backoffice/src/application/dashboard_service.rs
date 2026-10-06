@@ -37,6 +37,12 @@ impl<S: FeedbackStorePort + Clone> DashboardPort for DashboardService<S> {
             .await
             .map_err(|e| DashboardError::Store(e.to_string()))?;
 
+        let predictions_stored = self
+            .store
+            .get_prediction_count()
+            .await
+            .map_err(|e| DashboardError::Store(e.to_string()))?;
+
         let match_rate = if totals.total > 0 {
             format!(
                 "{:.0}%",
@@ -82,6 +88,7 @@ impl<S: FeedbackStorePort + Clone> DashboardPort for DashboardService<S> {
                 matched: totals.matched,
                 match_rate,
                 queue_pending,
+                predictions_stored,
             },
             page,
             total_pages,
@@ -147,6 +154,10 @@ mod tests {
 
         async fn get_pending_notification_count(&self) -> Result<i64, FeedbackStoreError> {
             Ok(0)
+        }
+
+        async fn get_prediction_count(&self) -> Result<i64, FeedbackStoreError> {
+            Ok(self.totals.total + 5)
         }
 
         async fn list_feedback(
