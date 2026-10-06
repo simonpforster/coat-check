@@ -1,3 +1,4 @@
+use ammonia::Builder;
 use chrono::{Duration, Utc};
 use email_address::EmailAddress;
 use futures::future::try_join_all;
@@ -71,6 +72,8 @@ impl<F: FeedbackStorePort + Clone, W: WeatherPort + Clone> FeedbackPort for Feed
         prediction_id: Uuid,
         contact: &str,
     ) -> Result<(), FeedbackError> {
+        let contact = contact.trim();
+
         if !EmailAddress::is_valid(contact) {
             return Err(FeedbackError::InvalidContact);
         }
@@ -137,7 +140,7 @@ impl<F: FeedbackStorePort + Clone, W: WeatherPort + Clone> FeedbackPort for Feed
         let feedback = Feedback {
             brought: brought.to_string(),
             should_have_brought: should_have_brought.to_string(),
-            comment,
+            comment: sanitise_comment(comment),
         };
 
         self.store
@@ -159,6 +162,14 @@ impl<F: FeedbackStorePort + Clone, W: WeatherPort + Clone> FeedbackPort for Feed
         }
         Ok(())
     }
+}
+
+/// Strip HTML tags, trim whitespace, collapse empty to None.
+fn sanitise_comment(comment: Option<String>) -> Option<String> {
+    comment
+        .map(|c| Builder::empty().clean(&c).to_string())
+        .map(|c| c.trim().to_string())
+        .filter(|c| !c.is_empty())
 }
 
 async fn fetch_actuals<W: WeatherPort>(

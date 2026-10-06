@@ -354,3 +354,45 @@ async fn submit_feedback_records_without_actual_weather_on_failure() {
     let id = svc.save_prediction(&coat_decision()).await.unwrap();
     assert!(svc.submit_feedback(id, "coat", "coat", None).await.is_ok());
 }
+
+// ── Sanitisation tests ───────────────────────────────────────────────
+
+#[test]
+fn sanitise_strips_html_tags() {
+    let input = Some("<script>alert('xss')</script>hello <b>world</b>".into());
+    let result = super::sanitise_comment(input);
+    assert_eq!(result, Some("hello world".to_string()));
+}
+
+#[test]
+fn sanitise_trims_whitespace() {
+    let input = Some("  hello world  ".into());
+    let result = super::sanitise_comment(input);
+    assert_eq!(result, Some("hello world".to_string()));
+}
+
+#[test]
+fn sanitise_collapses_empty_to_none() {
+    let input = Some("   ".into());
+    assert_eq!(super::sanitise_comment(input), None);
+}
+
+#[test]
+fn sanitise_collapses_html_only_to_none() {
+    let input = Some("<script>alert(1)</script>".into());
+    assert_eq!(super::sanitise_comment(input), None);
+}
+
+#[test]
+fn sanitise_passes_through_none() {
+    assert_eq!(super::sanitise_comment(None), None);
+}
+
+#[test]
+fn sanitise_preserves_plain_text() {
+    let input = Some("Great prediction, thanks!".into());
+    assert_eq!(
+        super::sanitise_comment(input),
+        Some("Great prediction, thanks!".to_string())
+    );
+}
