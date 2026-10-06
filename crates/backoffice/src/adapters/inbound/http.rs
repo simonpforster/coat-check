@@ -37,6 +37,19 @@ struct DashboardTemplate {
 }
 
 #[derive(Template, WebTemplate)]
+#[template(path = "stats.html")]
+struct StatsTemplate {
+    stats: FeedbackStats,
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "table_rows.html")]
+struct TableRowsTemplate {
+    entries: Vec<FeedbackEntry>,
+    page: i64,
+}
+
+#[derive(Template, WebTemplate)]
 #[template(path = "detail.html")]
 struct DetailTemplate {
     detail: FeedbackDetail,
@@ -61,6 +74,25 @@ async fn dashboard_handler(
     }
 }
 
+async fn stats_handler(State(svc): State<Arc<dyn DashboardPort>>) -> impl IntoResponse {
+    let feedback_page = svc.get_feedback_page(1).await.unwrap();
+    StatsTemplate {
+        stats: feedback_page.stats,
+    }
+}
+
+async fn table_handler(
+    State(svc): State<Arc<dyn DashboardPort>>,
+    Query(params): Query<PaginationParams>,
+) -> impl IntoResponse {
+    let page_num = params.page.unwrap_or(1);
+    let feedback_page = svc.get_feedback_page(page_num).await.unwrap();
+    TableRowsTemplate {
+        entries: feedback_page.entries,
+        page: feedback_page.page,
+    }
+}
+
 async fn detail_handler(
     State(svc): State<Arc<dyn DashboardPort>>,
     Path(id): Path<String>,
@@ -82,6 +114,8 @@ async fn detail_handler(
 pub fn router(dashboard: Arc<dyn DashboardPort>) -> Router {
     Router::new()
         .route("/", get(dashboard_handler))
+        .route("/stats", get(stats_handler))
+        .route("/table", get(table_handler))
         .route("/feedback/{id}", get(detail_handler))
         .route("/health", get(|| async { "ok" }))
         .with_state(dashboard)
