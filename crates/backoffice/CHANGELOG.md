@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/simonpforster/coat-check/compare/coat-check-backoffice-v0.2.0...coat-check-backoffice-v0.3.0) (2026-10-06)
+
+
+### Features
+
+* **backoffice:** add predictions stored ticker to dashboard ([#29](https://github.com/simonpforster/coat-check/issues/29)) ([05b63cf](https://github.com/simonpforster/coat-check/commit/05b63cf5eefdceb44f4ffeb05f49a5deb5604887))
+
 ## [0.2.0](https://github.com/simonpforster/coat-check/compare/coat-check-backoffice-v0.1.0...coat-check-backoffice-v0.2.0) (2026-10-06)
 
 
