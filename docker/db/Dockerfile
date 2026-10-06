@@ -1,3 +1,4 @@
+# Custom Postgres image with pg_ttl_index extension and init script baked in.
 FROM postgres:18-alpine
 
 RUN apk add --no-cache --virtual .build-deps \
