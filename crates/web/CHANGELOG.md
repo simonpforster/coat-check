@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.4.0...coat-check-web-v0.5.0) (2026-10-06)
+
+
+### Features
+
+* add user feedback collection system ([#20](https://github.com/simonpforster/coat-check/issues/20)) ([ed7d1eb](https://github.com/simonpforster/coat-check/commit/ed7d1ebfb1d6b68fb83085cac3e0911832416232))
+* **coat-check-web:** DDD architecture + multi-location support ([#18](https://github.com/simonpforster/coat-check/issues/18)) ([405a5c5](https://github.com/simonpforster/coat-check/commit/405a5c5353193962f02860bf443fde8fe1b3f331))
+
 ## [0.4.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.3.0...coat-check-web-v0.4.0) (2026-10-03)
 
 
