@@ -1,0 +1,65 @@
+services:
+  db:
+    build: docker/db
+    command: postgres -c shared_preload_libraries=pg_ttl_index
+    environment:
+      POSTGRES_DB: coatcheck
+      POSTGRES_USER: coatcheck
+      POSTGRES_PASSWORD: coatcheck
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./docker/db/init-ttl-worker.sh:/docker-entrypoint-initdb.d/init-ttl-worker.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coatcheck"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: crates/api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+      - DATABASE_URL=postgres://coatcheck:coatcheck@db:5432/coatcheck
+      - BASE_URL=${BASE_URL:-http://localhost:3000}
+      - RESEND_API_KEY
+      - FROM_EMAIL=${FROM_EMAIL:-Simon from Coat Check <simon@coat-check.org>}
+      - FEEDBACK_DELAY_MINUTES=1
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: crates/web/Dockerfile
+    ports:
+      - "3000:8080"
+    environment:
+      - API_URL=http://api:8080
+      - BASE_URL=${BASE_URL:-}
+      - GA_ID
+      - RUST_LOG=info
+    depends_on:
+      - api
+
+  backoffice:
+    build:
+      context: .
+      dockerfile: crates/backoffice/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - DATABASE_URL=postgres://coatcheck:coatcheck@db:5432/coatcheck
+      - RUST_LOG=info
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use serde::Deserialize;
 use tracing::{info, warn};
 
@@ -14,12 +15,14 @@ pub struct OpenMeteoClient {
 
 impl OpenMeteoClient {
     pub fn new() -> Self {
+        let base_url = std::env::var("WEATHER_API_URL")
+            .unwrap_or_else(|_| "https://api.open-meteo.com".to_string());
         Self {
             http: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(10))
                 .build()
                 .expect("failed to build HTTP client"),
-            base_url: "https://api.open-meteo.com".to_string(),
+            base_url,
         }
     }
 }
@@ -83,12 +86,62 @@ impl WeatherPort for OpenMeteoClient {
 
         to_domain_forecast(location, parsed)
     }
+
+    async fn fetch_daily_observation(
+        &self,
+        location: &Location,
+        date: NaiveDate,
+    ) -> Result<DailyForecast, WeatherPortError> {
+        let date_str = date.format("%Y-%m-%d");
+        let url = format!(
+            "{}/v1/forecast\
+             ?latitude={}&longitude={}\
+             &daily=temperature_2m_max,temperature_2m_min,\
+             apparent_temperature_min,\
+             precipitation_sum,wind_speed_10m_max,snowfall_sum,weather_code\
+             &start_date={}&end_date={}\
+             &timezone=auto",
+            self.base_url, location.latitude, location.longitude, date_str, date_str
+        );
+
+        info!(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            %date,
+            "fetching historical observation from Open-Meteo"
+        );
+
+        let response = self
+            .http
+            .get(&url)
+            .send()
+            .await
+            .map_err(|e| WeatherPortError::Network(e.to_string()))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            warn!(status = status.as_u16(), body = %body, "Open-Meteo returned error");
+            return Err(WeatherPortError::Upstream {
+                status: status.as_u16(),
+                body,
+            });
+        }
+
+        let parsed: OpenMeteoResponse = response
+            .json()
+            .await
+            .map_err(|e| WeatherPortError::Parse(e.to_string()))?;
+
+        to_domain_forecast(location, parsed)
+    }
 }
 
 // ── Serde DTOs (private to this module) ──────────────────────────────────────
 
 #[derive(Debug, Deserialize)]
 struct OpenMeteoResponse {
+    timezone: String,
     daily: OpenMeteoDailyData,
 }
 
@@ -116,6 +169,7 @@ fn to_domain_forecast(
     let d = &resp.daily;
     Ok(DailyForecast {
         location: location.clone(),
+        timezone: resp.timezone,
         temp_max_celsius: first_f64(&d.temperature_2m_max, "temperature_2m_max")?,
         temp_min_celsius: first_f64(&d.temperature_2m_min, "temperature_2m_min")?,
         feels_like_min_celsius: first_f64(&d.apparent_temperature_min, "apparent_temperature_min")?,
@@ -167,7 +221,7 @@ mod tests {
 
     #[test]
     fn missing_field_returns_parse_error() {
-        let bad = r#"{"daily": {"temperature_2m_max": [], "temperature_2m_min": [7.1],
+        let bad = r#"{"timezone": "Europe/London", "daily": {"temperature_2m_max": [], "temperature_2m_min": [7.1],
             "apparent_temperature_max": [11.0], "apparent_temperature_min": [8.3],
             "precipitation_sum": [0.0], "wind_speed_10m_max": [10.0],
             "snowfall_sum": [0.0], "weather_code": [0]}}"#;

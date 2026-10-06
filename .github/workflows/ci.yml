@@ -58,80 +58,79 @@ jobs:
           COVERAGE=$(jq '.data[0].totals.lines.percent' coverage.json | xargs printf '%.1f')
           echo "::notice::Code coverage: ${COVERAGE}%"
 
-  smoke:
-    name: Smoke Test
+  integration:
+    name: Integration Test
     needs: [clippy, test]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release -p coat-check -p coat-check-web
-      - name: Smoke test API
+
+      - name: Start stack
+        run: docker compose -f compose.yaml -f compose.test.yaml up -d --build --wait --wait-timeout 120
+
+      - name: Health checks
         run: |
-          PORT=8080 ./target/release/coat-check &
-          API_PID=$!
+          curl -sf http://localhost:8080/health
+          curl -sf http://localhost:3000/health
 
-          for i in $(seq 1 10); do
-            curl -sf http://localhost:8080/health && break
-            sleep 1
-          done
+      - name: Web homepage
+        run: curl -sf http://localhost:3000/ | grep -q 'Coat Check'
 
-          # Real coat-check request against live Open-Meteo (retry up to 3 times)
-          RESPONSE=$(curl -sf --retry 3 --retry-delay 2 -X POST http://localhost:8080/coat-check \
-            -H 'Content-Type: application/json' \
-            -d '{"locations":[{"lat":51.5074,"lon":-0.1278,"label":"London"}]}')
-
-          echo "$RESPONSE" | jq .
-          echo "$RESPONSE" | jq -e '.recommendation' > /dev/null
-          echo "$RESPONSE" | jq -e '.locations | length > 0' > /dev/null
-
-          kill $API_PID
-
-      - name: Smoke test Web
+      - name: Web coat check (web → API → stub → Postgres)
         run: |
-          PORT=8080 ./target/release/coat-check &
-          API_PID=$!
-
-          for i in $(seq 1 10); do
-            curl -sf http://localhost:8080/health && break
-            sleep 1
-          done
-
-          API_URL=http://localhost:8080 PORT=3000 ./target/release/coat-check-web &
-          WEB_PID=$!
-
-          for i in $(seq 1 10); do
-            curl -sf http://localhost:3000/health && break
-            sleep 1
-          done
-
-          curl -sf http://localhost:3000/ | grep -q 'Coat Check'
-
           BODY=$(curl -sf --retry 3 --retry-delay 2 -X POST http://localhost:3000/check \
             --data-urlencode 'locations=[{"lat":"51.5074","lon":"-0.1278","label":"London"}]')
           echo "$BODY" | grep -qE 'coat|No coat needed'
 
-          kill $WEB_PID $API_PID
+          # Extract prediction_id from hidden input: name="prediction_id" value="<uuid>"
+          PREDICTION_ID=$(echo "$BODY" | grep -oP 'name="prediction_id"\s+value="\K[0-9a-f-]{36}' | head -1)
+          echo "PREDICTION_ID=$PREDICTION_ID" >> "$GITHUB_ENV"
 
-  docker-api:
-    name: Docker Build (API)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: crates/api/Dockerfile
-          push: false
+      - name: Register email (web → API)
+        run: |
+          curl -sf -X POST http://localhost:3000/email \
+            --data-urlencode "prediction_id=$PREDICTION_ID" \
+            --data-urlencode "email=test@example.com" \
+            | grep -qi 'success\|thank\|registered'
 
-  docker-web:
-    name: Docker Build (Web)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v5
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: crates/web/Dockerfile
-          push: false
+      - name: Feedback page loads (web → API)
+        run: |
+          curl -sf "http://localhost:3000/feedback?token=$PREDICTION_ID" \
+            | grep -qi 'feedback\|brought'
+
+      - name: Submit feedback (web → API → Postgres)
+        run: |
+          curl -sf -X POST http://localhost:3000/feedback \
+            --data-urlencode "token=$PREDICTION_ID" \
+            --data-urlencode "brought=coat" \
+            --data-urlencode "should_have_brought=coat" \
+            --data-urlencode "comment=spot on" \
+            | grep -qi 'thank'
+
+      - name: Notification worker processes queued email
+        run: |
+          # Create a second prediction via API and register a contact.
+          # FEEDBACK_DELAY_MINUTES=0 so the notification is immediately ready.
+          RESPONSE=$(curl -sf -X POST http://localhost:8080/coat-check \
+            -H 'Content-Type: application/json' \
+            -d '{"locations":[{"lat":51.5074,"lon":-0.1278,"label":"London"}]}')
+          PID2=$(echo "$RESPONSE" | jq -re '.prediction_id')
+
+          curl -sf -X POST http://localhost:3000/email \
+            --data-urlencode "prediction_id=$PID2" \
+            --data-urlencode "email=worker-test@example.com"
+
+          # Worker polls every 60s — wait up to 90s for it to fire.
+          for i in $(seq 1 18); do
+            if docker compose -f compose.yaml -f compose.test.yaml logs api 2>&1 | grep -q "feedback notification sent"; then
+              echo "Notification worker processed the queued email"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for notification worker"
+          exit 1
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f compose.yaml -f compose.test.yaml logs

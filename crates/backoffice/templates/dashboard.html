@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coat Check — Backoffice</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;max-width:72rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;background:#fafaf9}
+    h1{font-size:1.5rem;margin-bottom:1rem}
+    .stats{display:flex;gap:1.5rem;margin-bottom:1.5rem}
+    .stat{padding:1rem 1.5rem;border-radius:6px;background:#f0fdf4;border:1px solid #bbf7d0}
+    .stat-value{font-size:1.5rem;font-weight:700}
+    .stat-label{font-size:0.8rem;color:#555;margin-top:0.25rem}
+    table{width:100%;border-collapse:collapse;font-size:0.85rem}
+    th{text-align:left;padding:0.5rem;background:#f5f5f4;border-bottom:2px solid #d6d3d1;font-weight:600;white-space:nowrap}
+    td{padding:0.5rem;border-bottom:1px solid #e7e5e4;vertical-align:top}
+    tr[data-href]{cursor:pointer}
+    tr[data-href]:hover td{background:#f0f4ff}
+    .match{color:#16a34a}
+    .mismatch{color:#dc2626}
+    .comment{max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .empty{text-align:center;padding:3rem;color:#888}
+    .uuid{font-family:monospace;font-size:0.75rem;color:#888}
+    .pagination{display:flex;align-items:center;justify-content:center;gap:0.5rem;margin-top:1.5rem;font-size:0.85rem}
+    .pagination a{padding:0.4rem 0.75rem;border:1px solid #d6d3d1;border-radius:4px;text-decoration:none;color:#1a1a1a}
+    .pagination a:hover{background:#f5f5f4}
+    .pagination .disabled{pointer-events:none;opacity:0.4}
+    .pagination .current{font-weight:600}
+  </style>
+</head>
+<body>
+  <h1>Coat Check — Feedback Dashboard</h1>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">{{ stats.total }}</div>
+      <div class="stat-label">Total feedback</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.matched }}</div>
+      <div class="stat-label">Brought = should have</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">{{ stats.match_rate }}</div>
+      <div class="stat-label">Match rate</div>
+    </div>
+  </div>
+
+  {% if entries.is_empty() %}
+  <div class="empty">No feedback submitted yet.</div>
+  {% else %}
+  <table>
+    <thead>
+      <tr>
+        <th>Predicted</th>
+        <th>Brought</th>
+        <th>Should have</th>
+        <th>Match</th>
+        <th>Comment</th>
+        <th>Predicted at</th>
+        <th>Feedback at</th>
+        <th>Prediction ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr data-href="/feedback/{{ entry.prediction_id }}">
+        <td>{{ entry.recommendation }}</td>
+        <td>{{ entry.feedback_brought }}</td>
+        <td>{{ entry.feedback_should_have_brought }}</td>
+        <td>{% if entry.matched %}<span class="match">Yes</span>{% else %}<span class="mismatch">No</span>{% endif %}</td>
+        <td class="comment" title="{{ entry.feedback_comment }}">{{ entry.feedback_comment }}</td>
+        <td>{{ entry.prediction_at }}</td>
+        <td>{{ entry.feedback_at }}</td>
+        <td class="uuid">{{ entry.prediction_id }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination">
+    <a href="/?page={{ pagination.page - 1 }}" {% if !pagination.has_prev %}class="disabled"{% endif %}>← Prev</a>
+    <span class="current">Page {{ pagination.page }} of {{ pagination.total_pages }}</span>
+    <a href="/?page={{ pagination.page + 1 }}" {% if !pagination.has_next %}class="disabled"{% endif %}>Next →</a>
+  </nav>
+  {% endif %}
+  <script>
+    document.querySelectorAll('tr[data-href]').forEach(function(row) {
+      row.addEventListener('click', function() {
+        window.location = this.dataset.href;
+      });
+    });
+  </script>
+</body>
+</html>

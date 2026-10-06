@@ -3,6 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+echo "==> Tearing down..."
+docker compose down -v
+
+
 services=("$@")
 
 echo "==> Building..."

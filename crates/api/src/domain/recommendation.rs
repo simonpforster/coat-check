@@ -1,5 +1,7 @@
 use crate::domain::{location::Location, weather::DailyForecast};
 
+pub use coat_check_common::Recommendation as CoatRecommendation;
+
 const FEELS_LIKE_THRESHOLD: f64 = 12.0;
 const TEMP_MAX_THRESHOLD: f64 = 15.0;
 const LIGHT_PRECIP_THRESHOLD: f64 = 1.0;
@@ -7,32 +9,10 @@ const HEAVY_PRECIP_THRESHOLD: f64 = 5.0;
 const WIND_THRESHOLD: f64 = 40.0;
 const THUNDERSTORM_CODE: u16 = 95;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CoatRecommendation {
-    /// No outerwear needed.
-    No = 0,
-    /// Light rain — bring an umbrella.
-    Umbrella = 1,
-    /// Heavier rain — bring a rain jacket.
-    RainJacket = 2,
-    /// Bring a proper coat.
-    Coat = 3,
-}
-
-impl CoatRecommendation {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            CoatRecommendation::No => "no",
-            CoatRecommendation::Umbrella => "umbrella",
-            CoatRecommendation::RainJacket => "rain_jacket",
-            CoatRecommendation::Coat => "coat",
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct LocationRecommendation {
     pub location: Location,
+    pub timezone: String,
     pub recommendation: CoatRecommendation,
     pub reasons: Vec<String>,
     pub temp_max_celsius: f64,
@@ -40,6 +20,8 @@ pub struct LocationRecommendation {
     pub feels_like_min_celsius: f64,
     pub precipitation_mm: f64,
     pub wind_speed_max_kmh: f64,
+    pub snowfall_cm: f64,
+    pub weather_code: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -124,6 +106,7 @@ pub fn evaluate(forecast: &DailyForecast) -> LocationRecommendation {
 
     LocationRecommendation {
         location: forecast.location.clone(),
+        timezone: forecast.timezone.clone(),
         recommendation,
         reasons,
         temp_max_celsius: forecast.temp_max_celsius,
@@ -131,6 +114,8 @@ pub fn evaluate(forecast: &DailyForecast) -> LocationRecommendation {
         feels_like_min_celsius: forecast.feels_like_min_celsius,
         precipitation_mm: forecast.precipitation_mm,
         wind_speed_max_kmh: forecast.wind_speed_max_kmh,
+        snowfall_cm: forecast.snowfall_cm,
+        weather_code: forecast.weather_code,
     }
 }
 
@@ -146,6 +131,7 @@ mod tests {
     fn warm_dry() -> DailyForecast {
         DailyForecast {
             location: loc(),
+            timezone: "Europe/London".into(),
             temp_max_celsius: 22.0,
             temp_min_celsius: 15.0,
             feels_like_min_celsius: 14.0,
@@ -258,12 +244,5 @@ mod tests {
         let r = evaluate(&f);
         assert_eq!(r.recommendation, CoatRecommendation::RainJacket);
         assert!(r.reasons.iter().any(|s| s.contains("thunderstorm")));
-    }
-
-    #[test]
-    fn coat_ordering() {
-        assert!(CoatRecommendation::Coat > CoatRecommendation::RainJacket);
-        assert!(CoatRecommendation::RainJacket > CoatRecommendation::Umbrella);
-        assert!(CoatRecommendation::Umbrella > CoatRecommendation::No);
     }
 }
