@@ -45,6 +45,8 @@ pub trait FeedbackStorePort: Send + Sync {
 
     async fn get_pending_notification_count(&self) -> Result<i64, FeedbackStoreError>;
 
+    async fn get_prediction_count(&self) -> Result<i64, FeedbackStoreError>;
+
     async fn list_feedback(
         &self,
         limit: i64,

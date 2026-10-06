@@ -53,6 +53,15 @@ impl FeedbackStorePort for PgFeedbackStore {
         Ok(count)
     }
 
+    async fn get_prediction_count(&self) -> Result<i64, FeedbackStoreError> {
+        let (count,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM predictions")
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| FeedbackStoreError::Database(e.to_string()))?;
+
+        Ok(count)
+    }
+
     async fn get_totals(&self) -> Result<FeedbackTotals, FeedbackStoreError> {
         let (total, matched): (i64, i64) = sqlx::query_as(
             "SELECT COUNT(*), \
