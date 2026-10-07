@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/simonpforster/coat-check/compare/coat-check-api-v0.5.0...coat-check-api-v0.5.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **api:** split FROM_EMAIL into FROM_EMAIL and FROM_NAME env vars ([#31](https://github.com/simonpforster/coat-check/issues/31)) ([c28f449](https://github.com/simonpforster/coat-check/commit/c28f4498c110a5e2e7c0d223d524dedd058b498e))
+
 ## [0.5.0](https://github.com/simonpforster/coat-check/compare/coat-check-api-v0.4.0...coat-check-api-v0.5.0) (2026-10-06)
 
 
