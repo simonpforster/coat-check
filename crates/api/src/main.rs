@@ -99,8 +99,14 @@ async fn main() {
             .ok()
             .filter(|s| !s.is_empty());
         let smtp_host = std::env::var("SMTP_HOST").ok().filter(|s| !s.is_empty());
-        let from_email = std::env::var("FROM_EMAIL")
-            .unwrap_or_else(|_| "Simon from Coat Check <simon@coat-check.org>".into());
+        let from_email = match (
+            std::env::var("FROM_EMAIL").ok().filter(|s| !s.is_empty()),
+            std::env::var("FROM_NAME").ok().filter(|s| !s.is_empty()),
+        ) {
+            (Some(email), Some(name)) => format!("{name} <{email}>"),
+            (Some(email), None) => email,
+            _ => "noreply@coat-check.org".into(),
+        };
 
         let api_url = std::env::var("API_URL").unwrap_or_else(|_| "http://localhost:8080".into());
 
