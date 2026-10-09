@@ -27,7 +27,8 @@ services:
       - DATABASE_URL=postgres://coatcheck:coatcheck@db:5432/coatcheck
       - BASE_URL=${BASE_URL:-http://localhost:3000}
       - RESEND_API_KEY
-      - FROM_EMAIL=${FROM_EMAIL:-Simon from Coat Check <simon@coat-check.org>}
+      - FROM_NAME=Simon from Coat Check
+      - FROM_EMAIL=simon@coat-check.org
       - FEEDBACK_DELAY_MINUTES=1
     depends_on:
       db:
