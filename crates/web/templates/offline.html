@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coat Check — Offline</title>
+  <meta name="theme-color" content="#2563eb">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;max-width:40rem;margin:2rem auto;padding:0 1rem;color:#1a1a1a;background:#fafaf9}
+    h1{font-size:1.5rem;margin-bottom:0.25rem}
+    header p{color:#555;margin-bottom:1rem}
+    .offline{margin-top:1.5rem;padding:1rem;border-radius:6px;background:#fefce8;border:1px solid #fef08a;text-align:center}
+    .offline h2{font-size:1.2rem;margin-bottom:0.5rem}
+    .offline p{color:#555;font-size:0.95rem}
+    button{margin-top:1rem;padding:0.6rem 1.2rem;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:1rem}
+    button:hover{background:#1d4ed8}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Coat Check</h1>
+    <p>Do I need a coat, jacket, or umbrella today?</p>
+  </header>
+  <main>
+    <div class="offline">
+      <h2>You're offline</h2>
+      <p>Coat Check needs an internet connection to fetch weather data.</p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </main>
+</body>
+</html>

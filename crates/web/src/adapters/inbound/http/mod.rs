@@ -87,6 +87,7 @@ where
             "/unsubscribe",
             axum::routing::post(unsubscribe_handler::<P>),
         )
+        .route("/offline", get(offline_handler))
         .route("/manifest.json", get(manifest_handler))
         .route("/sw.js", get(sw_handler))
         .route("/health", get(|| async { "ok" }))
@@ -96,6 +97,10 @@ where
 }
 
 // ── PWA ────────────────────────────────────────────────────────────────────
+
+async fn offline_handler() -> OfflineTemplate {
+    OfflineTemplate
+}
 
 async fn manifest_handler() -> impl IntoResponse {
     (
