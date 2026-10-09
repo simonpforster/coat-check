@@ -6,6 +6,7 @@
   <title>Coat Check — Do I need a coat, jacket, or umbrella today?</title>
   <meta name="description" content="Should I bring a coat, jacket, umbrella, or rain jacket today? Search any city for a weather-based recommendation — find out in seconds whether you need a coat, jacket, or umbrella before you leave.">
   <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" href="/manifest.json">
   <meta property="og:title" content="Coat Check — Do I need a coat, jacket, or umbrella today?">
   <meta property="og:description" content="Should I bring a coat, jacket, umbrella, or rain jacket today? Search any city for a quick weather-based recommendation.">
   <meta property="og:type" content="website">
@@ -104,6 +105,7 @@
   </script>
   {% endif %}
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0/dist/htmx.min.js" integrity="sha384-BvJpBiO8Kh31EqtJe5DRIeWrHWnCGkwytKs9NKFi86Hhw96dEqdEMzZDeK9iEGTc" crossorigin="anonymous"></script>
+  <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
   <script>
     var selectedLocations = [];
 
