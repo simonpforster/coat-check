@@ -359,7 +359,7 @@ dependencies = [
 
 [[package]]
 name = "coat-check-api"
-version = "0.4.0"
+version = "0.5.1"
 dependencies = [
  "ammonia",
  "async-trait",
@@ -388,7 +388,7 @@ dependencies = [
 
 [[package]]
 name = "coat-check-backoffice"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "askama",
  "askama_web",
@@ -413,7 +413,7 @@ version = "0.1.0"
 
 [[package]]
 name = "coat-check-web"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "askama",
  "askama_web",
