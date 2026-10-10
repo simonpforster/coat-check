@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.5.0...coat-check-web-v0.6.0) (2026-10-10)
+
+
+### Features
+
+* **web:** add dark mode support based on device settings ([#36](https://github.com/simonpforster/coat-check/issues/36)) ([2e741bf](https://github.com/simonpforster/coat-check/commit/2e741bfe85297ef27e3f8fb87d5995c2431dcd11))
+* **web:** add PWA support for Add to Home Screen ([#35](https://github.com/simonpforster/coat-check/issues/35)) ([4a1c46a](https://github.com/simonpforster/coat-check/commit/4a1c46a043dbcfe654850dc3240e3bd88117eb78))
+
 ## [0.5.0](https://github.com/simonpforster/coat-check/compare/coat-check-web-v0.4.0...coat-check-web-v0.5.0) (2026-10-06)
 
 
