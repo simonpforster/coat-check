@@ -76,6 +76,10 @@ pub(super) struct FeedbackExpiredTemplate;
 pub(super) struct UnsubscribeSuccessTemplate;
 
 #[derive(Template, WebTemplate)]
+#[template(path = "offline.html")]
+pub(super) struct OfflineTemplate;
+
+#[derive(Template, WebTemplate)]
 #[template(path = "error.html")]
 pub(super) struct ErrorTemplate {
     pub error: String,

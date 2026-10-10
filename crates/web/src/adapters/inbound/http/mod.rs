@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Form, State},
-    http::{HeaderMap, Method, StatusCode},
+    http::{header, HeaderMap, Method, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
     routing::get,
@@ -87,10 +87,33 @@ where
             "/unsubscribe",
             axum::routing::post(unsubscribe_handler::<P>),
         )
+        .route("/offline", get(offline_handler))
+        .route("/manifest.json", get(manifest_handler))
+        .route("/sw.js", get(sw_handler))
         .route("/health", get(|| async { "ok" }))
         .with_state(Arc::new(AppContext { service, config }))
         .layer(middleware::from_fn(csrf_check))
         .layer(TraceLayer::new_for_http())
+}
+
+// ── PWA ────────────────────────────────────────────────────────────────────
+
+async fn offline_handler() -> OfflineTemplate {
+    OfflineTemplate
+}
+
+async fn manifest_handler() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "application/manifest+json")],
+        include_str!("../../../../static/manifest.json"),
+    )
+}
+
+async fn sw_handler() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "application/javascript")],
+        include_str!("../../../../static/sw.js"),
+    )
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────────
