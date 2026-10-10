@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Coat Check — Do I need a coat, jacket, or umbrella today?</title>
   <meta name="description" content="Should I bring a coat, jacket, umbrella, or rain jacket today? Search any city for a weather-based recommendation — find out in seconds whether you need a coat, jacket, or umbrella before you leave.">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="theme-color" content="#2563eb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="/manifest.json">
   <meta property="og:title" content="Coat Check — Do I need a coat, jacket, or umbrella today?">
   <meta property="og:description" content="Should I bring a coat, jacket, umbrella, or rain jacket today? Search any city for a quick weather-based recommendation.">
@@ -47,6 +48,39 @@
     .htmx-request .htmx-indicator{display:inline}
     .htmx-request button{opacity:0.6}
     .error{background:#fef2f2;border:1px solid #fecaca;padding:1rem;border-radius:6px;color:#991b1b;margin-top:1.5rem}
+    .email-section{margin-top:1rem;padding-top:0.75rem;border-top:1px solid rgba(0,0,0,0.1)}
+    .email-section p{font-size:0.85rem;color:#555;margin-bottom:0.5rem}
+    .email-section input[type="email"]{flex:1;padding:0.4rem;border:1px solid #ccc;border-radius:4px;font-size:0.9rem}
+    .email-section button{padding:0.4rem 0.8rem;font-size:0.9rem}
+    footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid #e5e5e5;font-size:0.8rem;color:#888}
+    footer summary{cursor:pointer;color:#2563eb}
+    footer .unsub-form{margin-top:0.5rem;display:flex;gap:0.5rem;align-items:center}
+    footer .unsub-form input{padding:0.35rem 0.5rem;border:1px solid #ccc;border-radius:4px;font-size:0.85rem;flex:1}
+    footer .unsub-form button{padding:0.35rem 0.8rem;font-size:0.85rem}
+    .unsub-success{color:#16a34a;font-size:0.85rem;margin-top:0.5rem}
+    @media(prefers-color-scheme:dark){
+      body{background:#1a1a1a;color:#e5e5e5}
+      header p{color:#999}
+      input,select,textarea{background:#2a2a2a;border-color:#444;color:#e5e5e5}
+      input::placeholder{color:#666}
+      #suggestions{background:#2a2a2a;border-color:#444}
+      .suggestion{color:#e5e5e5}
+      .suggestion:hover{background:#333}
+      .selected-location{background:#1e293b;border-color:#334155}
+      .selected-location .remove{color:#ef4444}
+      .selected-location .remove:hover{color:#f87171}
+      .result{background:#14291e;border-color:#166534}
+      .result.coat{background:#2a1515;border-color:#7f1d1d}
+      .result.rain_jacket{background:#172033;border-color:#1e40af}
+      .result.umbrella{background:#2a2710;border-color:#854d0e}
+      .location-detail{background:rgba(0,0,0,0.3)}
+      .error{background:#2a1515;border-color:#7f1d1d;color:#fca5a5}
+      .email-section{border-color:rgba(255,255,255,0.15)}
+      .email-section p{color:#999}
+      footer{border-color:#333;color:#777}
+      footer summary{color:#60a5fa}
+      .unsub-success{color:#4ade80}
+    }
   </style>
 </head>
 <body>
@@ -69,13 +103,13 @@
   </form>
   <div id="result"></div>
   </main>
-  <footer style="margin-top:3rem;padding-top:1.5rem;border-top:1px solid #e5e5e5;font-size:0.8rem;color:#888">
+  <footer>
     <p>Your email is only stored until the feedback request is sent, then permanently deleted.</p>
     <details style="margin-top:0.75rem">
-      <summary style="cursor:pointer;color:#2563eb">Unsubscribe from pending emails</summary>
-      <form hx-post="/unsubscribe" hx-target="#unsub-result" hx-swap="innerHTML" style="margin-top:0.5rem;display:flex;gap:0.5rem;align-items:center">
-        <input type="email" name="email" placeholder="your@email.com" required style="padding:0.35rem 0.5rem;border:1px solid #ccc;border-radius:4px;font-size:0.85rem;flex:1">
-        <button type="submit" style="padding:0.35rem 0.8rem;background:#2563eb;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:0.85rem">Unsubscribe</button>
+      <summary>Unsubscribe from pending emails</summary>
+      <form class="unsub-form" hx-post="/unsubscribe" hx-target="#unsub-result" hx-swap="innerHTML">
+        <input type="email" name="email" placeholder="your@email.com" required>
+        <button type="submit">Unsubscribe</button>
       </form>
       <div id="unsub-result"></div>
     </details>
