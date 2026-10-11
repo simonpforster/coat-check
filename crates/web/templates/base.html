@@ -141,7 +141,7 @@
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0/dist/htmx.min.js" integrity="sha384-BvJpBiO8Kh31EqtJe5DRIeWrHWnCGkwytKs9NKFi86Hhw96dEqdEMzZDeK9iEGTc" crossorigin="anonymous"></script>
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
   <script>
-    var selectedLocations = [];
+    var selectedLocations = JSON.parse(localStorage.getItem('cc_locations') || '[]');
 
     function selectLocation(name, lat, lon) {
       selectedLocations.push({lat: lat, lon: lon, label: name});
@@ -162,6 +162,7 @@
 
       input.value = JSON.stringify(selectedLocations);
       btn.disabled = selectedLocations.length === 0;
+      localStorage.setItem('cc_locations', JSON.stringify(selectedLocations));
 
       list.innerHTML = '';
       selectedLocations.forEach(function(loc, i) {
@@ -179,6 +180,8 @@
         list.appendChild(row);
       });
     }
+
+    if (selectedLocations.length > 0) updateLocationList();
   </script>
 </body>
 </html>
