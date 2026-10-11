@@ -1,6 +1,6 @@
 {
   "crates/api": "0.5.1",
-  "crates/web": "0.5.0",
+  "crates/web": "0.6.0",
   "crates/backoffice": "0.3.0",
   "docker/db": "0.2.1"
 }
