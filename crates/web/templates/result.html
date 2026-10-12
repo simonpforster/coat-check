@@ -18,6 +18,8 @@
   </div>
   {% endfor %}
 
+  <button type="button" class="share-btn" onclick="shareResult()">Share result</button>
+
   {% if let Some(pid) = prediction_id %}
   <div class="email-section">
     <p>Want to tell us how accurate this was? Enter your email and we'll check in later today.</p>

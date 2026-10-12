@@ -33,11 +33,15 @@
     #suggestions{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #ccc;border-top:none;border-radius:0 0 4px 4px;z-index:10;display:none}
     #suggestions:not(:empty){display:block}
     .suggestion{display:block;width:100%;text-align:left;padding:0.5rem;background:none;color:#1a1a1a;border:none;border-bottom:1px solid #eee;cursor:pointer;font-size:0.9rem}
-    .suggestion:hover{background:#f0f0f0}
+    .suggestion:hover,.suggestion.active{background:#f0f0f0}
     .selected-locations{margin:0.75rem 0;display:flex;flex-direction:column;gap:0.35rem}
     .selected-location{display:flex;align-items:center;justify-content:space-between;font-size:0.85rem;padding:0.4rem 0.6rem;background:#f0f4ff;border:1px solid #bfdbfe;border-radius:4px}
     .selected-location .remove{background:none;border:none;color:#991b1b;cursor:pointer;font-size:1rem;padding:0 0.3rem;line-height:1}
     .selected-location .remove:hover{color:#ef4444}
+    .geo-btn{display:inline-flex;align-items:center;gap:0.3rem;padding:0.35rem 0.7rem;background:none;border:1px solid #ccc;border-radius:4px;color:#555;font-size:0.85rem;margin-top:0.35rem;cursor:pointer}
+    .geo-btn:hover{background:#f0f0f0;color:#1a1a1a}
+    .share-btn{display:inline-flex;align-items:center;gap:0.3rem;margin-top:0.75rem;padding:0.35rem 0.7rem;background:none;border:1px solid currentColor;border-radius:4px;font-size:0.85rem;cursor:pointer;color:inherit;opacity:0.7}
+    .share-btn:hover{opacity:1}
     .result{margin-top:1.5rem;padding:1rem;border-radius:6px;background:#f0fdf4;border:1px solid #bbf7d0}
     .result.coat{background:#fef2f2;border-color:#fecaca}
     .result.rain_jacket{background:#eff6ff;border-color:#bfdbfe}
@@ -65,10 +69,12 @@
       input::placeholder{color:#666}
       #suggestions{background:#2a2a2a;border-color:#444}
       .suggestion{color:#e5e5e5}
-      .suggestion:hover{background:#333}
+      .suggestion:hover,.suggestion.active{background:#333}
       .selected-location{background:#1e293b;border-color:#334155}
       .selected-location .remove{color:#ef4444}
       .selected-location .remove:hover{color:#f87171}
+      .geo-btn{border-color:#444;color:#999}
+      .geo-btn:hover{background:#333;color:#e5e5e5}
       .result{background:#14291e;border-color:#166534}
       .result.coat{background:#2a1515;border-color:#7f1d1d}
       .result.rain_jacket{background:#172033;border-color:#1e40af}
@@ -97,6 +103,7 @@
              autocomplete="off">
       <div id="suggestions"></div>
     </div>
+    <button type="button" class="geo-btn" id="geo-btn" style="display:none" onclick="useMyLocation()">Use my location</button>
     <div class="selected-locations" id="location-list"></div>
     <input type="hidden" name="locations" id="locations-input" value="[]">
     <button type="submit" id="submit-btn" disabled>Check <span class="htmx-indicator">...</span></button>
@@ -142,12 +149,18 @@
   <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
   <script>
     var selectedLocations = JSON.parse(localStorage.getItem('cc_locations') || '[]');
+    var suggestIndex = -1;
 
     function selectLocation(name, lat, lon) {
+      var isDuplicate = selectedLocations.some(function(loc) {
+        return loc.lat === lat && loc.lon === lon;
+      });
+      if (isDuplicate) return;
       selectedLocations.push({lat: lat, lon: lon, label: name});
       updateLocationList();
       document.getElementById('search').value = '';
       document.getElementById('suggestions').innerHTML = '';
+      suggestIndex = -1;
     }
 
     function removeLocation(index) {
@@ -181,7 +194,70 @@
       });
     }
 
-    if (selectedLocations.length > 0) updateLocationList();
+    // Keyboard navigation for suggestions
+    document.getElementById('search').addEventListener('keydown', function(e) {
+      var items = document.querySelectorAll('#suggestions .suggestion');
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        suggestIndex = Math.min(suggestIndex + 1, items.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        suggestIndex = Math.max(suggestIndex - 1, 0);
+      } else if (e.key === 'Enter' && suggestIndex >= 0) {
+        e.preventDefault();
+        items[suggestIndex].click();
+        return;
+      } else { return; }
+      items.forEach(function(el) { el.classList.remove('active'); });
+      items[suggestIndex].classList.add('active');
+      items[suggestIndex].scrollIntoView({block: 'nearest'});
+    });
+
+    // Reset suggestion index when new results load
+    document.getElementById('suggestions').addEventListener('htmx:afterSwap', function() {
+      suggestIndex = -1;
+    });
+
+    // Geolocation
+    if ('geolocation' in navigator) {
+      document.getElementById('geo-btn').style.display = '';
+    }
+    function useMyLocation() {
+      var btn = document.getElementById('geo-btn');
+      btn.disabled = true;
+      btn.textContent = 'Locating...';
+      navigator.geolocation.getCurrentPosition(function(pos) {
+        var lat = pos.coords.latitude.toFixed(4);
+        var lon = pos.coords.longitude.toFixed(4);
+        selectLocation('My location (' + lat + ', ' + lon + ')', lat, lon);
+        btn.disabled = false;
+        btn.textContent = 'Use my location';
+      }, function() {
+        btn.disabled = false;
+        btn.textContent = 'Use my location';
+      }, {timeout: 10000});
+    }
+
+    // Share result
+    function shareResult() {
+      var h2 = document.querySelector('.result h2');
+      var p = document.querySelector('.result > p');
+      var text = (h2 ? h2.textContent.trim() : '') + ' — ' + (p ? p.textContent.trim() : '');
+      if (navigator.share) {
+        navigator.share({title: 'Coat Check', text: text, url: location.href});
+      } else {
+        navigator.clipboard.writeText(text + ' ' + location.href);
+      }
+    }
+
+    // Auto-submit if returning with saved locations
+    if (selectedLocations.length > 0) {
+      updateLocationList();
+      htmx.on('htmx:load', function() {
+        htmx.trigger(document.querySelector('form'), 'submit');
+      }, {once: true});
+    }
   </script>
 </body>
 </html>
