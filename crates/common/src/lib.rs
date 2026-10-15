@@ -1,4 +1,4 @@
-/// The four coat-check recommendation levels.
+/// The five coat-check recommendation levels.
 ///
 /// Used for predictions, feedback responses, and display labels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -7,16 +7,19 @@ pub enum Recommendation {
     No = 0,
     /// Light rain — bring an umbrella.
     Umbrella = 1,
+    /// Cool but dry — bring a jacket.
+    Jacket = 2,
     /// Heavier rain — bring a rain jacket.
-    RainJacket = 2,
+    RainJacket = 3,
     /// Bring a proper coat.
-    Coat = 3,
+    Coat = 4,
 }
 
 impl Recommendation {
     pub const ALL: &[Recommendation] = &[
         Recommendation::No,
         Recommendation::Umbrella,
+        Recommendation::Jacket,
         Recommendation::RainJacket,
         Recommendation::Coat,
     ];
@@ -25,6 +28,7 @@ impl Recommendation {
         match self {
             Recommendation::No => "no",
             Recommendation::Umbrella => "umbrella",
+            Recommendation::Jacket => "jacket",
             Recommendation::RainJacket => "rain_jacket",
             Recommendation::Coat => "coat",
         }
@@ -42,6 +46,7 @@ impl Recommendation {
         match self {
             Recommendation::No => "Nothing",
             Recommendation::Umbrella => "Umbrella",
+            Recommendation::Jacket => "Jacket",
             Recommendation::RainJacket => "Rain jacket",
             Recommendation::Coat => "Coat",
         }
@@ -55,6 +60,7 @@ impl std::str::FromStr for Recommendation {
         match s {
             "no" => Ok(Recommendation::No),
             "umbrella" => Ok(Recommendation::Umbrella),
+            "jacket" => Ok(Recommendation::Jacket),
             "rain_jacket" => Ok(Recommendation::RainJacket),
             "coat" => Ok(Recommendation::Coat),
             _ => Err(()),
@@ -76,7 +82,8 @@ mod tests {
     #[test]
     fn ordering() {
         assert!(Recommendation::Coat > Recommendation::RainJacket);
-        assert!(Recommendation::RainJacket > Recommendation::Umbrella);
+        assert!(Recommendation::RainJacket > Recommendation::Jacket);
+        assert!(Recommendation::Jacket > Recommendation::Umbrella);
         assert!(Recommendation::Umbrella > Recommendation::No);
     }
 

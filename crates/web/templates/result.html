@@ -2,6 +2,7 @@
   <h2>
     {% if recommendation == "no" %}No coat needed today
     {% else if recommendation == "umbrella" %}Bring an umbrella
+    {% else if recommendation == "jacket" %}Bring a jacket
     {% else if recommendation == "rain_jacket" %}Bring a rain jacket
     {% else if recommendation == "coat" %}Bring a coat
     {% else %}{{ recommendation }}
