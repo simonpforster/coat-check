@@ -2,6 +2,7 @@
   <h2>
     {% if recommendation == "no" %}No coat needed today
     {% else if recommendation == "umbrella" %}Bring an umbrella
+    {% else if recommendation == "jacket" %}Bring a jacket
     {% else if recommendation == "rain_jacket" %}Bring a rain jacket
     {% else if recommendation == "coat" %}Bring a coat
     {% else %}{{ recommendation }}
@@ -17,6 +18,8 @@
     {% endfor %}
   </div>
   {% endfor %}
+
+  <button type="button" class="share-btn" onclick="shareResult()">Share result</button>
 
   {% if let Some(pid) = prediction_id %}
   <div class="email-section">

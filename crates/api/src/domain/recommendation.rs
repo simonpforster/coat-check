@@ -3,6 +3,7 @@ use crate::domain::{location::Location, weather::DailyForecast};
 pub use coat_check_common::Recommendation as CoatRecommendation;
 
 const FEELS_LIKE_THRESHOLD: f64 = 12.0;
+const JACKET_FEELS_LIKE_THRESHOLD: f64 = 16.0;
 const TEMP_MAX_THRESHOLD: f64 = 15.0;
 const LIGHT_PRECIP_THRESHOLD: f64 = 1.0;
 const HEAVY_PRECIP_THRESHOLD: f64 = 5.0;
@@ -71,6 +72,15 @@ pub fn evaluate(forecast: &DailyForecast) -> LocationRecommendation {
         ));
     }
 
+    // Cool-weather trigger → jacket (when dry)
+    let needs_jacket = !needs_coat && forecast.feels_like_min_celsius < JACKET_FEELS_LIKE_THRESHOLD;
+    if needs_jacket {
+        reasons.push(format!(
+            "feels like {:.1}°C — a light jacket should do",
+            forecast.feels_like_min_celsius
+        ));
+    }
+
     // Wet-weather triggers
     let mut needs_rain_jacket = false;
     let mut needs_umbrella = false;
@@ -98,6 +108,11 @@ pub fn evaluate(forecast: &DailyForecast) -> LocationRecommendation {
         CoatRecommendation::Coat
     } else if needs_rain_jacket {
         CoatRecommendation::RainJacket
+    } else if needs_jacket && needs_umbrella {
+        // Cool + light rain → rain jacket covers both
+        CoatRecommendation::RainJacket
+    } else if needs_jacket {
+        CoatRecommendation::Jacket
     } else if needs_umbrella {
         CoatRecommendation::Umbrella
     } else {
@@ -133,8 +148,8 @@ mod tests {
             location: loc(),
             timezone: "Europe/London".into(),
             temp_max_celsius: 22.0,
-            temp_min_celsius: 15.0,
-            feels_like_min_celsius: 14.0,
+            temp_min_celsius: 17.0,
+            feels_like_min_celsius: 18.0,
             precipitation_mm: 0.0,
             wind_speed_max_kmh: 10.0,
             snowfall_cm: 0.0,
@@ -147,6 +162,40 @@ mod tests {
         let r = evaluate(&warm_dry());
         assert_eq!(r.recommendation, CoatRecommendation::No);
         assert!(r.reasons.is_empty());
+    }
+
+    #[test]
+    fn jacket_cool_dry() {
+        let mut f = warm_dry();
+        f.feels_like_min_celsius = 14.0;
+        let r = evaluate(&f);
+        assert_eq!(r.recommendation, CoatRecommendation::Jacket);
+        assert!(r.reasons.iter().any(|s| s.contains("light jacket")));
+    }
+
+    #[test]
+    fn rain_jacket_cool_and_light_rain() {
+        let mut f = warm_dry();
+        f.feels_like_min_celsius = 14.0;
+        f.precipitation_mm = 3.0;
+        let r = evaluate(&f);
+        assert_eq!(r.recommendation, CoatRecommendation::RainJacket);
+    }
+
+    #[test]
+    fn jacket_at_threshold() {
+        let mut f = warm_dry();
+        f.feels_like_min_celsius = 15.9;
+        let r = evaluate(&f);
+        assert_eq!(r.recommendation, CoatRecommendation::Jacket);
+    }
+
+    #[test]
+    fn no_jacket_above_threshold() {
+        let mut f = warm_dry();
+        f.feels_like_min_celsius = 16.0;
+        let r = evaluate(&f);
+        assert_eq!(r.recommendation, CoatRecommendation::No);
     }
 
     #[test]
@@ -208,7 +257,8 @@ mod tests {
         f.precipitation_mm = 8.0;
         let r = evaluate(&f);
         assert_eq!(r.recommendation, CoatRecommendation::Coat);
-        assert_eq!(r.reasons.len(), 2);
+        assert!(r.reasons.iter().any(|s| s.contains("feels like")));
+        assert!(r.reasons.iter().any(|s| s.contains("precipitation")));
     }
 
     #[test]
